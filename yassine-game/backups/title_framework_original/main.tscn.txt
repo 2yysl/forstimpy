@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://41hyr6m2pa78"]
+
+[ext_resource type="Script" uid="uid://ge08vm1s8hdo" path="res://camera_2d.gd" id="1_ig7tw"]
+
+[node name="Main" type="Node2D" unique_id=1586369531]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1403437427]
+script = ExtResource("1_ig7tw")
+
+[node name="GameView" type="Marker2D" parent="." unique_id=13359212]
+
+[node name="GameHost" type="Node2D" parent="." unique_id=218479241]
+
+[node name="Message" type="RichTextLabel" parent="." unique_id=12223064]
+offset_right = 40.0
+offset_bottom = 40.0

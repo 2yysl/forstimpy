@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://41hyr6m2pa78"]
+
+[ext_resource type="Script" uid="uid://co1jeesm4p87t" path="res://scripts/main.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/title_screen.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/table_scene.tscn" id="2_h2yge"]
+
+[node name="Main" type="Node2D" unique_id=2008621360]
+script = ExtResource("1")
+next_scene = ExtResource("2_h2yge")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1040752473]
+position = Vector2(640, 360)
+
+[node name="GameView" type="Marker2D" parent="." unique_id=494427471]
+position = Vector2(640, 1080)
+
+[node name="GameHost" type="Node2D" parent="." unique_id=1791312361]
+position = Vector2(0, 720)
+
+[node name="TitleScreen" parent="." unique_id=292214993 instance=ExtResource("2")]
+layout_mode = 3
+anchors_preset = 0

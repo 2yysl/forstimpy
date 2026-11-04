@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://b5bku48sx3ors"]
+
+[node name="Main" type="Node2D" unique_id=1586369531]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1403437427]
+
+[node name="RichTextLabel" type="RichTextLabel" parent="." unique_id=12223064]
+offset_right = 40.0
+offset_bottom = 40.0
