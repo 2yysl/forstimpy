@@ -1,5 +1,5 @@
 {
-  "name": "slowbrainn",
+  "name": "yyslChess",
   "provenance": "Counts supplied in CODEX_FORSTIMPY_CHESS_HANDOFF.md; original PGNs unavailable, not independently verified.",
   "white_first_move_e4": {"observed": 22, "games": 23},
   "black_c6": {"observed": 27, "games": 27},

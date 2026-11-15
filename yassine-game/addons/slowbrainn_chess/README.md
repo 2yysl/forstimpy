@@ -1,6 +1,6 @@
-# Chess character implementation
+# yyslChess — character chess activity
 
-Optional offline chess against `slowbrainn`, integrated with the existing character, title screen and camera pan. All source additions live in this add-on. Existing files on `main` remain unchanged.
+Optional offline chess against `yyslChess`, integrated with the existing character, title screen and camera pan. The bot's identity is set by `display_name` in `chess_behavior.tres`. The existing add-on directory remains `slowbrainn_chess` for resource-path compatibility. All source additions live in this add-on. Existing files on `main` remain unchanged.
 
 ## Run
 

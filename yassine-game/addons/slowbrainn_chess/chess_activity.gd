@@ -40,7 +40,7 @@ func _ready() -> void:
 	theme = Theme.new()
 	theme.default_font = scene_font
 	bot = Bot.new()
-	bot.name = "SlowbrainnBot"
+	bot.name = bot.behavior.display_name
 	add_child(bot)
 	header = $TopStrip
 	panel = $TopStrip/Controls
@@ -193,7 +193,7 @@ func _refresh() -> void:
 	if ended.is_empty():
 		ended = game.outcome(legal)
 	status.text = ended if not ended.is_empty() else (thinking_dialogue if thinking else ("Careful — your king is in check!" if game.in_check(game.turn) else idle_dialogue))
-	details.text = "with slowbrainn\nYou: " + ("White" if human_color == 1 else "Black") + "\n" + bot.behavior.target_rating_label
+	details.text = "with " + bot.behavior.display_name + "\nYou: " + ("White" if human_color == 1 else "Black") + "\n" + bot.behavior.target_rating_label
 	portrait.texture = visual_theme.portrait_thinking if thinking else visual_theme.portrait_idle
 	$TopStrip/Controls/Colors/PlayWhite.set_pressed_no_signal(human_color == 1)
 	$TopStrip/Controls/Colors/PlayBlack.set_pressed_no_signal(human_color == -1)
@@ -208,7 +208,7 @@ func _bot_turn() -> void:
 	if not ended.is_empty():
 		return
 	if game.can_claim_draw():
-		ended = "Draw claimed by slowbrainn"
+		ended = "Draw claimed by " + bot.behavior.display_name
 		_refresh()
 		return
 	thinking = true

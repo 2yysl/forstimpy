@@ -2,6 +2,10 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 15 bot identity update
+
+Renamed the bot to `yyslChess` in the displayed opponent name, draw messages, runtime node name and personality metadata. `chess_behavior.tres` now exposes `display_name` as the shared identity setting. Existing resource paths retain the `slowbrainn_chess` directory for compatibility. Rendered integration: **35/35 checks passed**, exit 0. Search and opening behavior were unchanged by this rename.
+
 ## November 15 seated storyboard layout
 
 Rearranged `ChessActivity` to follow `assets/storyboard/scene 2 seated.png`: a three-part top strip, character dialogue bubble, large central board, sealed envelope and a working back arrow. Color/restart/draw controls occupy the strip; promotion choices appear over the board. The original title and table invitation remain unchanged, including the removal of “Not now” recorded below.
