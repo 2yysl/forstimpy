@@ -2,3 +2,7 @@
 .import/
 .mono/
 export_credentials.cfg
+
+# Local archives and exported builds
+/archive/
+/builds/

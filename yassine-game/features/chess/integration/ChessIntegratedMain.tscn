@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://83ibaon2k03i"]
+
+[ext_resource type="PackedScene" uid="uid://41hyr6m2pa78" path="res://main.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://features/chess/integration/ChessTableStage.tscn" id="2"]
+
+[node name="ChessIntegratedMain" unique_id=1840356970 instance=ExtResource("1")]
+next_scene = ExtResource("2")
