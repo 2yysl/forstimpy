@@ -2,6 +2,37 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 15 undo and user inventory
+
+Created branch `undo-user-inventory` from `chess-character-implementation` at `1ef7648`. Its separate local worktree is `/home/anson/Projects/forstimpy-undo-user-inventory`. Git branch names cannot contain spaces; this is the requested “undo + user inventory” branch. The original worktree and `main` were preserved.
+
+Implemented a bottom inventory with three separate placeholder controls: **undo** for read-only latest-move review, **takeback** for rock–paper–scissors, and **resign** replacing the former Claim draw action. A takeback win restores the start of the user's preceding turn, removing their move and any character reply. One decisive round settles the challenge, ties replay, and one challenge is available per committed player move. A loss keeps the position; a win cannot chain older rewinds. Cancelling before a decisive result does not spend the attempt. Challenges are available during active matches, including while a bot reply is pending. Preview remains available after a match ends.
+
+The character commits its RPS hand before player input using a separate RNG. Opening a challenge blocks chess input and invalidates pending AI work. Closing a lost or cancelled challenge resumes the pending turn. Successful restoration includes board, turn, castling rights, en passant, half/full-move counters, repetition history, last-move highlights and opening RNG state. Resignation records a loss and cancels pending work. Restart/color changes clear inventory state. Escape closes a challenge or preview before leaving the activity.
+
+| Gate | Result |
+| --- | --- |
+| Inventory native suite, graphical Godot | **56/56 passed**, exit 0 |
+| Existing character/chess integration | **35/35 passed**, exit 0 |
+| Existing rules/perft suite | **59/59 passed**, exit 0 |
+| Fresh single-threaded Web release export | Passed, no parser/resource errors |
+| Release browser gameplay and inventory | **26/26 passed**, exit 0; Chromium 155 |
+| Visual review | Desktop 1280×720 and portrait 390×844, including open RPS dialogs |
+
+The native suite forces wins, losses and ties, tests the attempt limit and duplicate result clicks, compares complete state after restoration, and covers both player colors, castling, en passant, promotion, cancelled/stale replies, restart and resignation. It also checks review stability when the bot finishes and bounded history drops an old entry. The browser suite uses real mouse/keyboard input and verifies preview round trips, modal input blocking, resignation, inventory placement and compact dialogs at both viewport sizes. Browser RPS uses a random actual outcome; deterministic outcome coverage belongs to the native suite. The unchanged bot/repertoire suite was not repeated for this feature; its earlier 237-check results remain recorded below.
+
+### Efficiency and issues resolved
+
+- `chess_history.gd` retains at most **three before-move snapshots**, enough for latest-move review and restoration of the last user turn. Each snapshot includes the repetition dictionary, which the search-oriented `copy_position()` deliberately omits. This avoids retaining every full position while preserving draw state.
+- Reviews read snapshots without changing live rules state. Restored RNG state ensures replaying the same opening move does not reroll the character's reply. RPS randomness is independent of chess difficulty.
+- Session/generation cancellation prevents a queued reply from landing after a rewind or resignation. Cancelling a challenge during an AI turn restarts that pending calculation on close; this occasional repeated work keeps the implementation small and preserves the existing search.
+- Visual review found an oversized RPS panel caused by wrapped labels reporting an initial tall minimum. Deferred resizing after minimum-size changes fixes it; native bounds and browser screenshots now cover the regression.
+- No external engine, runtime package, persistent inventory, currency or final artwork was added. Buttons and dialogs reuse the existing theme and named scene nodes.
+
+Final browser export, logs and screenshots: `/tmp/yyslChess-inventory-q7xqa57e/`. Native results are recorded in the execution transcript. The earlier raw cold import reproduced the original project's `local_path.is_empty()` resource-loader message; the fresh temporary export helper completed cleanly. The helper already handles that inherited import ordering. User-owned visual-theme edits and generated asset import sidecars were excluded from this feature's commit.
+
+Run `tests/test_inventory.gd` using the README command to repeat the new native checks; the same script also runs headlessly. The branch is committed locally, with no push or merge performed for this feature. The sections below describe earlier implementations and their then-current behavior, including the former draw-claim control.
+
 ## November 15 fixed-difficulty system
 
 Implemented the agreed yyslChess proposal: nine sourced six-full-move opening lines (Scotch/Center as White, Caro-Kann/Slav as Black) plus four equivalent move-order aliases. White always begins e4. Legal position lookup supports transpositions through Black's sixth move; from White's seventh move it is disabled. Unsupported replies automatically use the same search. Opening references, coverage and a rarer Charousek continuation are documented in `data/OPENINGS.md`.

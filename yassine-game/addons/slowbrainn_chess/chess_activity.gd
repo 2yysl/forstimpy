@@ -2,6 +2,7 @@ extends Control
 signal leave_requested
 const Rules = preload("res://addons/slowbrainn_chess/chess_rules.gd")
 const Bot = preload("res://addons/slowbrainn_chess/chess_bot.gd")
+const History = preload("res://addons/slowbrainn_chess/chess_history.gd")
 @export var visual_theme: Resource = preload("res://addons/slowbrainn_chess/chess_visual_theme.tres")
 @export var idle_dialogue := "hey bro, your move. no rush."
 @export var thinking_dialogue := "hmm… let me think."
@@ -20,7 +21,17 @@ var panel: VBoxContainer
 var status: Label
 var details: Label
 var promotion_row: HBoxContainer
-var claim: Button
+var history = History.new()
+var review_index := -1
+var undo: Button
+var takeback: Button
+var resign: Button
+var inventory: PanelContainer
+var rps_rng := RandomNumberGenerator.new()
+var rps_active := false
+var rps_resolved := false
+var rps_target := -1
+var rps_choice := -1
 var header: NinePatchRect
 var portrait: TextureRect
 var dialogue_bubble: TextureRect
@@ -51,23 +62,34 @@ func _ready() -> void:
 	board_frame = $BoardFrame
 	envelope = $SealedEnvelope
 	back = $Back
-	claim = $TopStrip/Controls/Actions/ClaimDraw
+	inventory = $Inventory
+	undo = $Inventory/Contents/Buttons/Undo
+	takeback = $Inventory/Contents/Buttons/Takeback
+	resign = $Inventory/Contents/Buttons/Resign
+	rps_rng.randomize()
 	promotion_row = $Promotion/Options
 	$TopStrip/Controls/Colors/PlayWhite.pressed.connect(func(): restart(1))
 	$TopStrip/Controls/Colors/PlayBlack.pressed.connect(func(): restart(-1))
 	$TopStrip/Controls/Actions/Restart.pressed.connect(func(): restart(human_color))
-	claim.pressed.connect(_claim_draw)
+	undo.pressed.connect(_toggle_review)
+	takeback.pressed.connect(_request_takeback)
+	resign.pressed.connect(_resign)
+	for hand in 3:
+		$RPS/Dialog/Contents/Choices.get_child(hand).pressed.connect(_play_rps.bind(hand))
+	$RPS/Dialog/Contents/Close.pressed.connect(_close_rps)
 	back.pressed.connect(leave_match)
 	for kind in [Rules.QUEEN, Rules.ROOK, Rules.BISHOP, Rules.KNIGHT]:
 		promotion_row.get_node({5: "Queen", 4: "Rook", 3: "Bishop", 2: "Knight"}[kind]).pressed.connect(_promote.bind(kind))
 	_apply_artwork()
-	for label in [status, details, $EnvelopeCaption, $TopStrip/Atmosphere]:
+	for label in [status, details, $EnvelopeCaption, $TopStrip/Atmosphere, $Inventory/Contents/Title,
+		$RPS/Dialog/Contents/Title, $RPS/Dialog/Contents/Description, $RPS/Dialog/Contents/Result]:
 		label.add_theme_color_override("font_color", visual_theme.ink_color)
 	status.add_theme_font_size_override("font_size", 22)
 	details.add_theme_font_size_override("font_size", 14)
 	$TopStrip/Atmosphere.add_theme_font_size_override("font_size", 14)
 	$EnvelopeCaption.add_theme_font_size_override("font_size", 14)
-	for button in [back, claim, $TopStrip/Controls/Colors/PlayWhite, $TopStrip/Controls/Colors/PlayBlack, $TopStrip/Controls/Actions/Restart] + promotion_row.get_children():
+	$Inventory/Contents/Title.add_theme_font_size_override("font_size", 12)
+	for button in [back, undo, takeback, resign, $RPS/Dialog/Contents/Close, $TopStrip/Controls/Colors/PlayWhite, $TopStrip/Controls/Colors/PlayBlack, $TopStrip/Controls/Actions/Restart] + promotion_row.get_children() + $RPS/Dialog/Contents/Choices.get_children():
 		_style_button(button)
 	var promotion_style := StyleBoxFlat.new()
 	promotion_style.bg_color = visual_theme.panel_color
@@ -79,6 +101,15 @@ func _ready() -> void:
 	promotion_style.content_margin_top = 6
 	promotion_style.content_margin_bottom = 6
 	$Promotion.add_theme_stylebox_override("panel", promotion_style)
+	inventory.add_theme_stylebox_override("panel", promotion_style.duplicate())
+	var dialog_style: StyleBoxFlat = promotion_style.duplicate()
+	dialog_style.content_margin_left = 16
+	dialog_style.content_margin_right = 16
+	dialog_style.content_margin_top = 16
+	dialog_style.content_margin_bottom = 16
+	$RPS/Dialog.add_theme_stylebox_override("panel", dialog_style)
+	# Wrapped labels can briefly report a tall minimum before containers lay out.
+	$RPS/Dialog.minimum_size_changed.connect(_layout_rps.call_deferred)
 	resized.connect(_layout)
 	get_viewport().size_changed.connect(_fit_window)
 	_fit_window()
@@ -136,10 +167,12 @@ func _layout() -> void:
 		_place(dialogue_bubble, Rect2(82, 176, size.x - 98, 76))
 		_place(envelope, Rect2(14, 186, 60, 48))
 		_place($EnvelopeCaption, Rect2(14, 235, 60, 20))
-		var extent := maxf(80, minf(size.x - 48, size.y - 372))
+		var extent := maxf(80, minf(size.x - 48, size.y - 444))
 		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 280), Vector2.ONE * extent)
-		_place(details, Rect2(24, board_rect.end.y + 30, size.x - 48, 60))
-		details.visible = size.y >= 720
+		_place(details, Rect2(24, board_rect.end.y + 24, size.x - 48, 54))
+		details.add_theme_font_size_override("font_size", 12)
+		details.visible = size.y >= 820
+		_place(inventory, Rect2(16, size.y - 140, size.x - 32, 68))
 		_place(back, Rect2(24, size.y - 62, 124, 44))
 	else:
 		_place(header, Rect2(32, 20, size.x - 64, 118))
@@ -152,16 +185,30 @@ func _layout() -> void:
 		_place(envelope, Rect2(dialogue_bubble.position.x - 142, 166, 112, 86))
 		_place($EnvelopeCaption, Rect2(envelope.position.x, 252, 112, 22))
 		var extent := maxf(80, minf(size.y - 284, size.x - 316))
+		var side_inventory := size.x - (size.x + extent) * 0.5 - 62 >= 300
+		if not side_inventory:
+			extent = maxf(80, minf(extent, size.y - 366))
 		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 252), Vector2.ONE * extent)
 		_place(details, Rect2(board_rect.end.x + 30, 278, maxf(120, size.x - board_rect.end.x - 62), 96))
 		details.show()
+		details.add_theme_font_size_override("font_size", 14)
+		if side_inventory:
+			_place(inventory, Rect2(size.x - 360, size.y - 90, 328, 68))
+		else:
+			_place(inventory, Rect2(maxf(220, (size.x - 400) * 0.5), size.y - 90, minf(400, size.x - 252), 68))
 		_place(back, Rect2(60, size.y - 80, 134, 50))
 	$TopStrip/Atmosphere.visible = not narrow and header.size.x >= 1200
 	_place(status, Rect2(24, 18, dialogue_bubble.size.x - 48, dialogue_bubble.size.y - 26))
 	_place($Back/Arrow, Rect2(0, 5, 76, 36))
 	_place(board_frame, board_rect.grow(14))
 	_place($Promotion, Rect2(board_rect.position.x, board_rect.get_center().y - 24, board_rect.size.x, 48))
+	_place($RPS, Rect2(Vector2.ZERO, size))
+	_layout_rps()
 	queue_redraw()
+
+func _layout_rps() -> void:
+	var dialog_width := minf(440, size.x - 32)
+	_place($RPS/Dialog, Rect2((size.x - dialog_width) * 0.5, maxf(8, (size.y - 320) * 0.5), dialog_width, 320))
 
 func restart(color: int) -> void:
 	session += 1
@@ -173,6 +220,12 @@ func restart(color: int) -> void:
 	last_move = {}
 	ended = ""
 	thinking = false
+	history.clear()
+	review_index = -1
+	rps_active = false
+	rps_resolved = false
+	rps_target = -1
+	$RPS.hide()
 	_refresh()
 	if game.turn != human_color:
 		_bot_turn()
@@ -197,11 +250,18 @@ func _refresh() -> void:
 	portrait.texture = visual_theme.portrait_thinking if thinking else visual_theme.portrait_idle
 	$TopStrip/Controls/Colors/PlayWhite.set_pressed_no_signal(human_color == 1)
 	$TopStrip/Controls/Colors/PlayBlack.set_pressed_no_signal(human_color == -1)
-	claim.disabled = thinking or not ended.is_empty() or not game.can_claim_draw()
-	promotion_row.visible = not promotion_moves.is_empty()
+	undo.disabled = history.entries.is_empty() or not promotion_moves.is_empty() or rps_active
+	undo.set_pressed_no_signal(review_index >= 0)
+	takeback.disabled = not ended.is_empty() or not promotion_moves.is_empty() or rps_active or history.challenge_index() < 0
+	resign.disabled = not ended.is_empty() or rps_active
+	$Inventory/Contents/Title.text = "inventory · preview only" if review_index >= 0 else "inventory"
+	promotion_row.visible = not promotion_moves.is_empty() and review_index < 0 and not rps_active
 	$Promotion.visible = promotion_row.visible
 	if not promotion_moves.is_empty():
 		status.text = "Which piece are you going for?"
+	if review_index >= 0:
+		var entry: Dictionary = history.entries[review_index]
+		status.text = ("White" if entry.before.position.turn == 1 else "Black") + " " + Rules.square_name(entry.move.from) + " → " + Rules.square_name(entry.move.to) + " · preview"
 	queue_redraw()
 
 func _bot_turn() -> void:
@@ -214,18 +274,95 @@ func _bot_turn() -> void:
 	thinking = true
 	_refresh()
 	var token := session
+	var before: Dictionary = history.capture(game, bot.rng.state, last_move)
 	var move: Dictionary = await bot.choose_move(game)
 	if token != session or not is_inside_tree():
 		return
 	thinking = false
 	if not move.is_empty() and game.play(move):
+		if history.record(before, move, human_color) and review_index >= 0:
+			review_index -= 1
 		last_move = move
 	_refresh()
 
-func _claim_draw() -> void:
-	if not thinking and ended.is_empty() and game.can_claim_draw():
-		ended = "Draw claimed"
-		_refresh()
+func _toggle_review() -> void:
+	if history.entries.is_empty() or not promotion_moves.is_empty() or rps_active:
+		return
+	review_index = history.entries.size() - 1 if review_index < 0 else -1
+	selected = -1
+	_refresh()
+
+func _resign() -> void:
+	if not ended.is_empty() or rps_active:
+		return
+	session += 1
+	bot.cancel()
+	thinking = false
+	review_index = -1
+	promotion_moves.clear()
+	selected = -1
+	ended = ("Black" if human_color == 1 else "White") + " wins — you resigned"
+	_refresh()
+
+func _request_takeback() -> void:
+	if not ended.is_empty() or not promotion_moves.is_empty() or rps_active:
+		return
+	rps_target = history.challenge_index()
+	if rps_target < 0:
+		return
+	# Freeze the live position during the challenge, including any queued reply.
+	session += 1
+	bot.cancel()
+	thinking = false
+	selected = -1
+	rps_active = true
+	rps_resolved = false
+	rps_choice = rps_rng.randi_range(0, 2) # Commit before the player chooses.
+	$RPS/Dialog/Contents/Result.text = "Choose your hand."
+	$RPS/Dialog/Contents/Close.text = "cancel"
+	for button in $RPS/Dialog/Contents/Choices.get_children():
+		button.disabled = false
+	$RPS.show()
+	_refresh()
+
+func _play_rps(hand: int) -> void:
+	if not rps_active or rps_resolved or hand < 0 or hand > 2:
+		return
+	var names := ["rock", "paper", "scissors"]
+	var result := (hand - rps_choice + 3) % 3
+	var description: String = "You: " + names[hand] + " · " + bot.behavior.display_name + ": " + names[rps_choice] + "\n"
+	if result == 0:
+		$RPS/Dialog/Contents/Result.text = description + "Tie — choose again."
+		rps_choice = rps_rng.randi_range(0, 2)
+		return
+	if not history.consume_challenge(rps_target):
+		_close_rps()
+		return
+	rps_resolved = true
+	for button in $RPS/Dialog/Contents/Choices.get_children():
+		button.disabled = true
+	if result == 1:
+		var restored: Dictionary = history.restore(rps_target)
+		game = restored.position
+		bot.rng.state = restored.rng_state
+		last_move = restored.last_move
+		review_index = -1
+		promotion_moves.clear()
+		ended = ""
+		$RPS/Dialog/Contents/Result.text = description + "You won! Your previous turn is restored."
+	else:
+		$RPS/Dialog/Contents/Result.text = description + "You lost. Make a new chess move before trying again."
+	$RPS/Dialog/Contents/Close.text = "return to game"
+	_refresh()
+
+func _close_rps() -> void:
+	if not rps_active:
+		return
+	rps_active = false
+	$RPS.hide()
+	_refresh()
+	if ended.is_empty() and game.turn != human_color:
+		_bot_turn()
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -237,7 +374,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 func select_square(index: int) -> void:
-	if thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty():
+	if thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty() or review_index >= 0 or rps_active:
 		return
 	var candidates := legal.filter(func(move): return move.from == selected and move.to == index)
 	if not candidates.is_empty():
@@ -258,8 +395,10 @@ func _promote(kind: int) -> void:
 			return
 
 func _make_move(move: Dictionary) -> void:
+	var before: Dictionary = history.capture(game, bot.rng.state, last_move)
 	if not game.play(move):
 		return
+	history.record(before, move, human_color)
 	last_move = move
 	selected = -1
 	_refresh()
@@ -269,7 +408,12 @@ func _make_move(move: Dictionary) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		leave_match()
+		if rps_active:
+			_close_rps()
+		elif review_index >= 0:
+			_toggle_review()
+		else:
+			leave_match()
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), visual_theme.panel_color)
@@ -277,21 +421,23 @@ func _draw() -> void:
 		return
 	var cell := board_rect.size.x / 8.0
 	var font: Font = scene_font if scene_font else ThemeDB.fallback_font
+	var displayed = history.entries[review_index].before.position if review_index >= 0 else game
+	var highlighted: Dictionary = history.entries[review_index].move if review_index >= 0 else last_move
 	for row in 8:
 		for column in 8:
 			var index := row * 8 + column if human_color == 1 else (7 - row) * 8 + 7 - column
 			var rect := Rect2(board_rect.position + Vector2(column, row) * cell, Vector2.ONE * cell)
 			draw_rect(rect, visual_theme.light_square if (row + column) % 2 == 0 else visual_theme.dark_square)
-			if index == selected or index == last_move.get("from", -1) or index == last_move.get("to", -1):
+			if index == selected or index == highlighted.get("from", -1) or index == highlighted.get("to", -1):
 				draw_rect(rect.grow(-2), visual_theme.highlight, false, 3)
-			if game.board[index] != 0:
-				var texture: Texture2D = visual_theme.piece_texture(game.board[index])
+			if displayed.board[index] != 0:
+				var texture: Texture2D = visual_theme.piece_texture(displayed.board[index])
 				if texture:
 					var available := rect.size * 0.90
 					var scale_factor := minf(available.x / texture.get_width(), available.y / texture.get_height())
 					var extent := texture.get_size() * scale_factor
 					draw_texture_rect(texture, Rect2(rect.get_center() - extent * 0.5, extent), false)
-			for move in legal:
+			for move in ([] if review_index >= 0 or rps_active else legal):
 				if move.from == selected and move.to == index:
 					draw_circle(rect.get_center(), cell * 0.10, visual_theme.legal_destination)
 					break

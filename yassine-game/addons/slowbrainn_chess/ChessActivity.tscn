@@ -59,12 +59,6 @@ size_flags_horizontal = 3
 custom_minimum_size = Vector2(0, 28)
 text = "Restart"
 
-[node name="ClaimDraw" type="Button" parent="TopStrip/Controls/Actions"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 28)
-text = "Claim draw"
-
 [node name="Portrait" type="TextureRect" parent="TopStrip"]
 layout_mode = 0
 mouse_filter = 2
@@ -160,3 +154,104 @@ layout_mode = 2
 size_flags_horizontal = 3
 custom_minimum_size = Vector2(0, 40)
 text = "Knight"
+
+[node name="Inventory" type="PanelContainer" parent="."]
+layout_mode = 0
+
+[node name="Contents" type="VBoxContainer" parent="Inventory"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Inventory/Contents"]
+layout_mode = 2
+text = "inventory"
+
+[node name="Buttons" type="HBoxContainer" parent="Inventory/Contents"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Undo" type="Button" parent="Inventory/Contents/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 32)
+text = "undo"
+toggle_mode = true
+tooltip_text = "Preview the position before the latest move. Press again to return."
+
+[node name="Takeback" type="Button" parent="Inventory/Contents/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 32)
+text = "takeback"
+tooltip_text = "Win rock–paper–scissors to restore your previous turn."
+
+[node name="Resign" type="Button" parent="Inventory/Contents/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 32)
+text = "resign"
+tooltip_text = "Concede the match."
+
+[node name="RPS" type="Control" parent="."]
+layout_mode = 0
+visible = false
+z_index = 10
+
+[node name="Shade" type="ColorRect" parent="RPS"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.12, 0.12, 0.55)
+
+[node name="Dialog" type="PanelContainer" parent="RPS"]
+layout_mode = 0
+
+[node name="Contents" type="VBoxContainer" parent="RPS/Dialog"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="RPS/Dialog/Contents"]
+layout_mode = 2
+text = "win a takeback"
+
+[node name="Description" type="Label" parent="RPS/Dialog/Contents"]
+layout_mode = 2
+autowrap_mode = 3
+custom_minimum_size = Vector2(0, 48)
+text = "One round. Win to return to your previous turn. Ties replay."
+
+[node name="Choices" type="HBoxContainer" parent="RPS/Dialog/Contents"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Rock" type="Button" parent="RPS/Dialog/Contents/Choices"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 36)
+text = "rock"
+
+[node name="Paper" type="Button" parent="RPS/Dialog/Contents/Choices"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 36)
+text = "paper"
+
+[node name="Scissors" type="Button" parent="RPS/Dialog/Contents/Choices"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 36)
+text = "scissors"
+
+[node name="Result" type="Label" parent="RPS/Dialog/Contents"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 64)
+autowrap_mode = 3
+text = "Choose your hand."
+
+[node name="Close" type="Button" parent="RPS/Dialog/Contents"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "cancel"

@@ -19,7 +19,19 @@ godot --path yassine-game res://addons/slowbrainn_chess/demo/ChessCharacterTest.
 
 The original project's default entry scene is unchanged. Use the explicit alternate scene above, or open it in the Godot editor and press F6.
 
-Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. White/Black in the top strip starts a new match in the selected color. Restart resets the current color. The back arrow or Escape returns to the character and restores the invitation.
+Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. White/Black in the top strip starts a new match in the selected color. Restart resets the current color. The back arrow returns to the character and restores the invitation. Escape first closes an open challenge or preview; otherwise it leaves the match.
+
+## Inventory
+
+The bottom inventory contains three placeholder buttons, with named nodes in `ChessActivity.tscn` for later design work:
+
+- **undo** toggles a read-only view of the position before the latest individual move, highlighting its origin and destination and naming it in the dialogue bubble. Press it again or Escape to return to live play. It never changes the match. A pending bot reply can finish while reviewing; the preview stays on the selected move.
+- **takeback** opens rock–paper–scissors against yyslChess during an active match. Win one decisive round to restore the start of your previous turn, removing your last move and the character's reply if it has arrived. Ties replay. A win or loss consumes that committed player move's challenge; you must make another chess move before trying again. A loss leaves the position unchanged. Cancelling before a decisive result keeps the attempt available. Older takebacks cannot be chained after a win.
+- **resign** concedes the match to the character immediately. This replaces the former player-facing Claim draw control.
+
+The character commits an independently randomized RPS hand before each choice. Chess input is blocked while the challenge is open, and any pending bot reply is cancelled; closing an unresolved or lost challenge resumes that turn. A successful takeback restores pieces, castling rights, en passant, move counters, repetition history, last-move highlights and the opening RNG state. Replaying the same move therefore preserves the book reply. Only the three most recent before-move snapshots are retained, sufficient for these actions. Restarting or changing colors clears inventory history and challenge eligibility.
+
+No inventory currency, persistence or final artwork is introduced. The controls reuse the current theme and stay below or beside the board according to available space.
 
 ## Browser export
 
@@ -63,16 +75,17 @@ The **950–1200 Chess.com rating target is uncalibrated**. Three-ply search is 
 
 The bot exposes per-search measurements (`last_source`, `last_completed_depth`, `last_nodes`, `last_cutoffs`, `last_search_ms`, `last_cpu_ms`, `last_max_slice_ms`). Search time includes frame waits but excludes the cosmetic delay; `last_total_ms` includes it. These are diagnostics and do not change difficulty.
 
-Draw handling includes stalemate, common insufficient-material positions, claimable threefold repetition/50-move draws, and automatic fivefold repetition/75-move draws. Claims are offered once the current position qualifies; advance claims based on a proposed next move are not implemented. This MVP does not implement a general solver for every possible dead position, clocks, resignation, PGN export, networking or matchmaking.
+Draw handling includes stalemate, common insufficient-material positions, automatic fivefold repetition/75-move draws, and the bot claiming threefold repetition/50-move draws on its turn. The inventory's resign button replaces the human draw-claim action; it concedes rather than claiming a draw. Advance draw claims based on a proposed next move are not implemented. This MVP does not implement a general solver for every possible dead position, clocks, PGN export, networking or matchmaking.
 
 ## Verification
 
 ```bash
 godot --headless --path yassine-game --script res://addons/slowbrainn_chess/tests/test_chess_rules.gd
 godot --path yassine-game --resolution 1280x720 --script res://addons/slowbrainn_chess/tests/test_integration.gd
+godot --path yassine-game --resolution 1280x720 --script res://addons/slowbrainn_chess/tests/test_inventory.gd
 ```
 
-The second command needs a graphical display. Browser regression uses actual canvas mouse/keyboard input and screenshot checks:
+The latter two commands need a graphical display; the inventory suite can also run with `--headless`. It exercises RPS wins/losses/ties, one-attempt limits, read-only review, restoration of special moves and complete match state, pending reply cancellation, Black orientation and resignation. Browser regression uses actual canvas mouse/keyboard input and screenshot checks:
 
 ```bash
 # Install these in an external test environment, outside the game project:
