@@ -19,7 +19,7 @@ godot --path yassine-game res://addons/slowbrainn_chess/demo/ChessCharacterTest.
 
 The original project's default entry scene is unchanged. Use the explicit alternate scene above, or open it in the Godot editor and press F6.
 
-Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. Play White/Play Black starts a new match in the selected color. Restart resets the current color. Leave match or Escape returns to the character and restores the invitation.
+Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. White/Black in the top strip starts a new match in the selected color. Restart resets the current color. The back arrow or Escape returns to the character and restores the invitation.
 
 ## Browser export
 
@@ -35,6 +35,25 @@ Open `http://127.0.0.1:8765/` in a browser with WebGL 2. The export needs no che
 ## Artwork and behavior
 
 Edit `chess_visual_theme.tres` in the inspector to replace any of its 12 named White/Black piece textures, square colors, highlights, panel background or ink color. Transparent PNG, WebP and SVG textures are supported by Godot. Pieces retain their aspect ratio within each square. The included SVG silhouettes are original placeholders and have no external font dependency.
+
+The activity follows `assets/storyboard/scene 2 seated.png`: a three-part top strip, character dialogue bubble, large central chessboard, sealed envelope and back arrow. Desktop uses the horizontal composition; portrait stacks the strip's controls and keeps a readable board below the dialogue. The envelope, memory images and time/music illustration are decorative placeholders.
+
+All scene artwork is configured in the same visual theme, under **Scene artwork**:
+
+| Theme slot | Artwork |
+| --- | --- |
+| `top_strip` | Top strip background and separators |
+| `time_music` | Clock/music illustration |
+| `portrait_idle`, `portrait_thinking` | Character expressions |
+| `memories` | Photo/video-area illustration |
+| `dialogue_bubble` | Speech bubble background |
+| `board_frame` | Board surround |
+| `sealed_envelope` | Envelope and seal |
+| `back_arrow` | Navigation arrow |
+
+The supplied SVGs live in `assets/ui/`. Replace a slot's texture in the theme and rerun the scene; no chess code changes are needed. Portraits, memories, envelope and arrow preserve aspect ratio. The strip and board frame use nine-patch borders (14 px and 12 px respectively); the dialogue background stretches to its layout area. Choose matching margins when replacing frame artwork.
+
+The **Typography** group exposes `interface_font`. The activity uses a local copy of that font for sharp text in the existing project's stretched viewport. Edit `idle_dialogue` and `thinking_dialogue` on the `ChessActivity` root to personalize the bubble's text. `ChessActivity.tscn` contains the named controls and artwork nodes; responsive placement lives in `chess_activity.gd`.
 
 `chess_behavior.tres` controls evaluation noise, the search time budget (650 ms), frame work budget (4 ms) and a short thinking delay. Search yields between root candidates and during evaluation. A move-generation call is indivisible, so these are scheduling budgets rather than hard real-time guarantees. Session tokens cancel stale work on restart and exit. There is no worker-thread requirement.
 

@@ -55,6 +55,8 @@ func _run() -> void:
 	check(is_instance_valid(stage.activity), "Board hotspot opens chess during invitation")
 	var activity = stage.activity
 	check(activity.game.board.count(0) == 32 and activity.human_color == 1, "White game starts with 32 pieces")
+	check(activity.header.texture != null and activity.portrait.texture != null and activity.get_node("TopStrip/Memories").texture != null, "Top strip has replaceable frame, portrait and memory art")
+	check(activity.dialogue_bubble.get_rect().end.y < activity.board_rect.position.y and activity.board_frame.texture != null and activity.envelope.texture != null and activity.get_node("Back/Arrow").texture != null, "Dialogue sits above the large board with envelope and back artwork")
 	activity.select_square(Rules.square("e2"))
 	check(activity.selected == Rules.square("e2"), "Player can select own piece")
 	activity.select_square(Rules.square("e5"))
@@ -112,6 +114,12 @@ func _run() -> void:
 	activity.queue_redraw()
 	await process_frame
 	check(activity.visual_theme.piece_texture(Rules.PAWN).get_size() == Vector2(40, 80) and activity.game.position_key() == key, "Theme texture swap leaves rules unchanged")
+	var original_strip: Texture2D = activity.visual_theme.top_strip
+	activity.visual_theme.top_strip = ImageTexture.create_from_image(image)
+	activity._apply_artwork()
+	check(activity.header.texture.get_size() == Vector2(40, 80) and activity.game.position_key() == key, "Scene artwork swaps through the theme without affecting chess")
+	activity.visual_theme.top_strip = original_strip
+	activity._apply_artwork()
 	# Promotion UI offers all four choices.
 	activity.game.load_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
 	activity._refresh()
@@ -120,7 +128,8 @@ func _run() -> void:
 	check(activity.promotion_moves.size() == 4 and activity.promotion_row.visible, "Promotion chooser opens")
 	activity._promote(Rules.KNIGHT)
 	check(activity.game.board[0] == Rules.KNIGHT and activity.ended == "Draw by insufficient material", "UI underpromotion and draw work")
-	stage.activity.leave_match()
+	activity.back.pressed.emit()
+	check(not is_instance_valid(stage.activity) and stage.choices.visible, "Back arrow returns to the character invitation")
 	main.queue_free()
 	await process_frame
 	var demo = load("res://addons/slowbrainn_chess/demo/ChessCharacterTest.tscn").instantiate()

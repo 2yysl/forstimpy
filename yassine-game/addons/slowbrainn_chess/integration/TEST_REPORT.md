@@ -2,6 +2,20 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 15 seated storyboard layout
+
+Rearranged `ChessActivity` to follow `assets/storyboard/scene 2 seated.png`: a three-part top strip, character dialogue bubble, large central board, sealed envelope and a working back arrow. Color/restart/draw controls occupy the strip; promotion choices appear over the board. The original title and table invitation remain unchanged, including the removal of “Not now” recorded below.
+
+Added nine original SVG placeholders in `assets/ui/`, exposed as named texture slots in `chess_visual_theme.tres`. The font is also replaceable in that resource; idle/thinking dialogue text is editable on the activity root. New UI elements are named nodes in `ChessActivity.tscn`. The envelope, memory images and time/music graphic are decorative art.
+
+- Baseline before rearrangement: **31/31** rendered integration checks passed.
+- After rearrangement: **35/35** rendered integration checks passed, exit 0, including new artwork slots, dialogue/board arrangement, scene-art swapping without rule changes, promotion and back-arrow navigation.
+- Import and fresh Web release export: passed without parser/resource errors.
+- Chromium gameplay regression: **17/17** passed, exit 0; real mouse/keyboard input exercised relocated controls and both board orientations.
+- Visual review: desktop 1280×720, portrait 390×844 and a native promotion position. Portrait font rendering and dialogue spacing were corrected after the first review.
+- Final Web logs/screenshots: `/tmp/forstimpy-storyboard-rfvcxlyp/`; native results are in the execution transcript. The one-off promotion screenshot is `/tmp/forstimpy-storyboard-promotion.png`.
+- The rules and bot implementation were unchanged; their rules-only suite was not repeated for the layout change.
+
 ## November 15 invitation update
 
 Removed the “Not now” button and its decline state at the user's request. The invitation now contains only “sure” and “yes but red”; the board hotspot still opens chess, and leaving a match restores the invitation. The README and affected tests reflect this behavior.

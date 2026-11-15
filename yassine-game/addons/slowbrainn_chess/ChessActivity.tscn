@@ -3,10 +3,160 @@
 [ext_resource type="Script" path="res://addons/slowbrainn_chess/chess_activity.gd" id="1"]
 
 [node name="ChessActivity" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 0
 script = ExtResource("1")
+
+[node name="TopStrip" type="NinePatchRect" parent="."]
+layout_mode = 0
+mouse_filter = 2
+patch_margin_left = 14
+patch_margin_top = 14
+patch_margin_right = 14
+patch_margin_bottom = 14
+
+[node name="TimeMusic" type="TextureRect" parent="TopStrip"]
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Atmosphere" type="Label" parent="TopStrip"]
+layout_mode = 0
+text = "no rush, just chess"
+mouse_filter = 2
+
+[node name="Controls" type="VBoxContainer" parent="TopStrip"]
+layout_mode = 0
+theme_override_constants/separation = 6
+
+[node name="Colors" type="HBoxContainer" parent="TopStrip/Controls"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PlayWhite" type="Button" parent="TopStrip/Controls/Colors"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 28)
+text = "White"
+toggle_mode = true
+tooltip_text = "Start a new game as White"
+
+[node name="PlayBlack" type="Button" parent="TopStrip/Controls/Colors"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 28)
+text = "Black"
+toggle_mode = true
+tooltip_text = "Start a new game as Black"
+
+[node name="Actions" type="HBoxContainer" parent="TopStrip/Controls"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Restart" type="Button" parent="TopStrip/Controls/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 28)
+text = "Restart"
+
+[node name="ClaimDraw" type="Button" parent="TopStrip/Controls/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 28)
+text = "Claim draw"
+
+[node name="Portrait" type="TextureRect" parent="TopStrip"]
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Memories" type="TextureRect" parent="TopStrip"]
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Dialogue" type="TextureRect" parent="."]
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Status" type="Label" parent="Dialogue"]
+layout_mode = 0
+mouse_filter = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="BoardFrame" type="NinePatchRect" parent="."]
+layout_mode = 0
+mouse_filter = 2
+patch_margin_left = 12
+patch_margin_top = 12
+patch_margin_right = 12
+patch_margin_bottom = 12
+draw_center = false
+
+[node name="SealedEnvelope" type="TextureRect" parent="."]
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EnvelopeCaption" type="Label" parent="."]
+layout_mode = 0
+mouse_filter = 2
+text = "for you"
+horizontal_alignment = 1
+
+[node name="Back" type="Button" parent="."]
+layout_mode = 0
+text = "back"
+flat = true
+alignment = 2
+tooltip_text = "Leave match and return to the character"
+
+[node name="Arrow" type="TextureRect" parent="Back"]
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Details" type="Label" parent="."]
+layout_mode = 0
+mouse_filter = 2
+autowrap_mode = 3
+
+[node name="Promotion" type="PanelContainer" parent="."]
+layout_mode = 0
+visible = false
+z_index = 2
+
+[node name="Options" type="HBoxContainer" parent="Promotion"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Queen" type="Button" parent="Promotion/Options"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 40)
+text = "Queen"
+
+[node name="Rook" type="Button" parent="Promotion/Options"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 40)
+text = "Rook"
+
+[node name="Bishop" type="Button" parent="Promotion/Options"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 40)
+text = "Bishop"
+
+[node name="Knight" type="Button" parent="Promotion/Options"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 40)
+text = "Knight"

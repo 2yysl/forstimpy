@@ -1,4 +1,4 @@
-[gd_resource type="Resource" load_steps=14 format=3]
+[gd_resource type="Resource" load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://addons/slowbrainn_chess/chess_visual_theme.gd" id="1"]
 [ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/white_pawn.svg" id="2"]
@@ -14,6 +14,16 @@
 [ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_queen.svg" id="12"]
 [ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_king.svg" id="13"]
 
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/top_strip.svg" id="14"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/time_music.svg" id="15"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/portrait_idle.svg" id="16"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/portrait_thinking.svg" id="17"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/memories.svg" id="18"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/dialogue_bubble.svg" id="19"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/board_frame.svg" id="20"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/sealed_envelope.svg" id="21"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/ui/back_arrow.svg" id="22"]
+
 [resource]
 script = ExtResource("1")
 white_pawn = ExtResource("2")
@@ -28,3 +38,12 @@ black_bishop = ExtResource("10")
 black_rook = ExtResource("11")
 black_queen = ExtResource("12")
 black_king = ExtResource("13")
+top_strip = ExtResource("14")
+time_music = ExtResource("15")
+portrait_idle = ExtResource("16")
+portrait_thinking = ExtResource("17")
+memories = ExtResource("18")
+dialogue_bubble = ExtResource("19")
+board_frame = ExtResource("20")
+sealed_envelope = ExtResource("21")
+back_arrow = ExtResource("22")

@@ -3,6 +3,8 @@ signal leave_requested
 const Rules = preload("res://addons/slowbrainn_chess/chess_rules.gd")
 const Bot = preload("res://addons/slowbrainn_chess/chess_bot.gd")
 @export var visual_theme: Resource = preload("res://addons/slowbrainn_chess/chess_visual_theme.tres")
+@export var idle_dialogue := "hey bro, your move. no rush."
+@export var thinking_dialogue := "hmm… let me think."
 var game = Rules.new()
 var bot: Node
 var human_color := 1
@@ -19,45 +21,64 @@ var status: Label
 var details: Label
 var promotion_row: HBoxContainer
 var claim: Button
+var header: NinePatchRect
+var portrait: TextureRect
+var dialogue_bubble: TextureRect
+var board_frame: NinePatchRect
+var envelope: TextureRect
+var back: Button
+var scene_font: Font
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	scene_font = visual_theme.interface_font.duplicate() if visual_theme.interface_font else ThemeDB.fallback_font.duplicate()
+	# Keep local text crisp when this overlay compensates for the original
+	# project's canvas stretch; do not change the shared project's font resource.
+	if scene_font is FontFile:
+		scene_font.oversampling = 1.0
+	theme = Theme.new()
+	theme.default_font = scene_font
 	bot = Bot.new()
 	bot.name = "SlowbrainnBot"
 	add_child(bot)
-	panel = VBoxContainer.new()
-	panel.name = "MatchControls"
-	panel.add_theme_constant_override("separation", 10)
-	add_child(panel)
-	var heading := Label.new()
-	heading.text = "chess with slowbrainn"
-	heading.add_theme_font_size_override("font_size", 25)
-	panel.add_child(heading)
-	status = Label.new()
-	status.name = "Status"
-	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status.custom_minimum_size.y = 54
-	panel.add_child(status)
-	details = Label.new()
-	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	details.add_theme_font_size_override("font_size", 14)
-	panel.add_child(details)
-	var colors := HBoxContainer.new()
-	panel.add_child(colors)
-	_button(colors, "Play White", func(): restart(1)).name = "PlayWhite"
-	_button(colors, "Play Black", func(): restart(-1)).name = "PlayBlack"
-	_button(panel, "Restart", func(): restart(human_color)).name = "Restart"
-	claim = _button(panel, "Claim draw", _claim_draw)
-	claim.name = "ClaimDraw"
-	promotion_row = HBoxContainer.new()
-	promotion_row.name = "Promotion"
-	panel.add_child(promotion_row)
+	header = $TopStrip
+	panel = $TopStrip/Controls
+	portrait = $TopStrip/Portrait
+	dialogue_bubble = $Dialogue
+	status = $Dialogue/Status
+	details = $Details
+	board_frame = $BoardFrame
+	envelope = $SealedEnvelope
+	back = $Back
+	claim = $TopStrip/Controls/Actions/ClaimDraw
+	promotion_row = $Promotion/Options
+	$TopStrip/Controls/Colors/PlayWhite.pressed.connect(func(): restart(1))
+	$TopStrip/Controls/Colors/PlayBlack.pressed.connect(func(): restart(-1))
+	$TopStrip/Controls/Actions/Restart.pressed.connect(func(): restart(human_color))
+	claim.pressed.connect(_claim_draw)
+	back.pressed.connect(leave_match)
 	for kind in [Rules.QUEEN, Rules.ROOK, Rules.BISHOP, Rules.KNIGHT]:
-		_button(promotion_row, {5: "Queen", 4: "Rook", 3: "Bishop", 2: "Knight"}[kind], _promote.bind(kind))
-	_button(panel, "Leave match", leave_match).name = "LeaveMatch"
-	for label in [heading, status, details]:
+		promotion_row.get_node({5: "Queen", 4: "Rook", 3: "Bishop", 2: "Knight"}[kind]).pressed.connect(_promote.bind(kind))
+	_apply_artwork()
+	for label in [status, details, $EnvelopeCaption, $TopStrip/Atmosphere]:
 		label.add_theme_color_override("font_color", visual_theme.ink_color)
+	status.add_theme_font_size_override("font_size", 22)
+	details.add_theme_font_size_override("font_size", 14)
+	$TopStrip/Atmosphere.add_theme_font_size_override("font_size", 14)
+	$EnvelopeCaption.add_theme_font_size_override("font_size", 14)
+	for button in [back, claim, $TopStrip/Controls/Colors/PlayWhite, $TopStrip/Controls/Colors/PlayBlack, $TopStrip/Controls/Actions/Restart] + promotion_row.get_children():
+		_style_button(button)
+	var promotion_style := StyleBoxFlat.new()
+	promotion_style.bg_color = visual_theme.panel_color
+	promotion_style.border_color = visual_theme.ink_color
+	promotion_style.set_border_width_all(2)
+	promotion_style.set_corner_radius_all(4)
+	promotion_style.content_margin_left = 6
+	promotion_style.content_margin_right = 6
+	promotion_style.content_margin_top = 6
+	promotion_style.content_margin_bottom = 6
+	$Promotion.add_theme_stylebox_override("panel", promotion_style)
 	resized.connect(_layout)
 	get_viewport().size_changed.connect(_fit_window)
 	_fit_window()
@@ -71,25 +92,75 @@ func _fit_window() -> void:
 	size = get_viewport_rect().size * stretch
 	_layout()
 
-func _button(parent: Node, text: String, callback: Callable) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.custom_minimum_size.y = 36
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+func _apply_artwork() -> void:
+	header.texture = visual_theme.top_strip
+	$TopStrip/TimeMusic.texture = visual_theme.time_music
+	portrait.texture = visual_theme.portrait_idle
+	$TopStrip/Memories.texture = visual_theme.memories
+	dialogue_bubble.texture = visual_theme.dialogue_bubble
+	board_frame.texture = visual_theme.board_frame
+	envelope.texture = visual_theme.sealed_envelope
+	$Back/Arrow.texture = visual_theme.back_arrow
+
+func _style_button(button: Button) -> void:
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.pressed.connect(callback)
-	parent.add_child(button)
-	return button
+	button.add_theme_font_size_override("font_size", 14 if button != back else 20)
+	for state_name in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		button.add_theme_color_override(state_name, visual_theme.ink_color)
+	button.add_theme_color_override("font_disabled_color", visual_theme.ink_color * Color(1, 1, 1, 0.45))
+	for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = visual_theme.panel_color
+		if state_name == "hover" or state_name == "pressed":
+			style.bg_color = visual_theme.light_square
+		style.border_color = visual_theme.ink_color * Color(1, 1, 1, 0.3 if state_name == "disabled" else 1.0)
+		style.set_border_width_all(0 if button == back else 1)
+		style.set_corner_radius_all(3)
+		button.add_theme_stylebox_override(state_name, style)
+
+func _place(control: Control, rect: Rect2) -> void:
+	control.position = rect.position
+	control.size = rect.size
 
 func _layout() -> void:
 	if not is_instance_valid(panel):
 		return
 	var narrow := size.x < 760
-	var extent := minf(size.x - 48, size.y - 365) if narrow else minf(size.y - 80, size.x * 0.59)
-	extent = maxf(80, extent)
-	board_rect = Rect2(Vector2(24, 32), Vector2.ONE * extent)
-	panel.position = Vector2(24, board_rect.end.y + 24) if narrow else Vector2(board_rect.end.x + 32, 32)
-	panel.size = Vector2(size.x - panel.position.x - 24, 0)
+	status.add_theme_font_size_override("font_size", 18 if narrow else 22)
+	if narrow:
+		_place(header, Rect2(16, 16, size.x - 32, 148))
+		_place($TopStrip/TimeMusic, Rect2(10, 10, 48, 24))
+		_place(portrait, Rect2(56, 6, header.size.x * 0.46, 66))
+		_place($TopStrip/Memories, Rect2(header.size.x * 0.64, 8, header.size.x * 0.33, 64))
+		_place(panel, Rect2(12, 80, header.size.x - 24, 62))
+		_place(dialogue_bubble, Rect2(82, 176, size.x - 98, 76))
+		_place(envelope, Rect2(14, 186, 60, 48))
+		_place($EnvelopeCaption, Rect2(14, 235, 60, 20))
+		var extent := maxf(80, minf(size.x - 48, size.y - 372))
+		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 280), Vector2.ONE * extent)
+		_place(details, Rect2(24, board_rect.end.y + 30, size.x - 48, 60))
+		details.visible = size.y >= 720
+		_place(back, Rect2(24, size.y - 62, 124, 44))
+	else:
+		_place(header, Rect2(32, 20, size.x - 64, 118))
+		_place($TopStrip/TimeMusic, Rect2(16, 8, 110, 26))
+		_place($TopStrip/Atmosphere, Rect2(140, 10, header.size.x * 0.25 - 156, 22))
+		_place(panel, Rect2(16, 42, header.size.x * 0.25 - 32, 62))
+		_place(portrait, Rect2(header.size.x * 0.25 + 12, 5, header.size.x * 0.34 - 24, 108))
+		_place($TopStrip/Memories, Rect2(header.size.x * 0.59 + 12, 8, header.size.x * 0.41 - 24, 102))
+		_place(dialogue_bubble, Rect2((size.x - minf(770, size.x - 320)) * 0.5, 150, minf(770, size.x - 320), 76))
+		_place(envelope, Rect2(dialogue_bubble.position.x - 142, 166, 112, 86))
+		_place($EnvelopeCaption, Rect2(envelope.position.x, 252, 112, 22))
+		var extent := maxf(80, minf(size.y - 284, size.x - 316))
+		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 252), Vector2.ONE * extent)
+		_place(details, Rect2(board_rect.end.x + 30, 278, maxf(120, size.x - board_rect.end.x - 62), 96))
+		details.show()
+		_place(back, Rect2(60, size.y - 80, 134, 50))
+	$TopStrip/Atmosphere.visible = not narrow and header.size.x >= 1200
+	_place(status, Rect2(24, 18, dialogue_bubble.size.x - 48, dialogue_bubble.size.y - 26))
+	_place($Back/Arrow, Rect2(0, 5, 76, 36))
+	_place(board_frame, board_rect.grow(14))
+	_place($Promotion, Rect2(board_rect.position.x, board_rect.get_center().y - 24, board_rect.size.x, 48))
 	queue_redraw()
 
 func restart(color: int) -> void:
@@ -121,10 +192,16 @@ func _refresh() -> void:
 	legal = game.legal_moves()
 	if ended.is_empty():
 		ended = game.outcome(legal)
-	status.text = ended if not ended.is_empty() else ("slowbrainn is thinking…" if thinking else "Your move" + (" — check!" if game.in_check(game.turn) else ""))
-	details.text = "You: " + ("White" if human_color == 1 else "Black") + " · " + bot.behavior.target_rating_label
+	status.text = ended if not ended.is_empty() else (thinking_dialogue if thinking else ("Careful — your king is in check!" if game.in_check(game.turn) else idle_dialogue))
+	details.text = "with slowbrainn\nYou: " + ("White" if human_color == 1 else "Black") + "\n" + bot.behavior.target_rating_label
+	portrait.texture = visual_theme.portrait_thinking if thinking else visual_theme.portrait_idle
+	$TopStrip/Controls/Colors/PlayWhite.set_pressed_no_signal(human_color == 1)
+	$TopStrip/Controls/Colors/PlayBlack.set_pressed_no_signal(human_color == -1)
 	claim.disabled = thinking or not ended.is_empty() or not game.can_claim_draw()
 	promotion_row.visible = not promotion_moves.is_empty()
+	$Promotion.visible = promotion_row.visible
+	if not promotion_moves.is_empty():
+		status.text = "Which piece are you going for?"
 	queue_redraw()
 
 func _bot_turn() -> void:
@@ -199,7 +276,7 @@ func _draw() -> void:
 	if board_rect.size.x <= 0:
 		return
 	var cell := board_rect.size.x / 8.0
-	var font := ThemeDB.fallback_font
+	var font: Font = scene_font if scene_font else ThemeDB.fallback_font
 	for row in 8:
 		for column in 8:
 			var index := row * 8 + column if human_color == 1 else (7 - row) * 8 + 7 - column
@@ -219,6 +296,6 @@ func _draw() -> void:
 					draw_circle(rect.get_center(), cell * 0.10, visual_theme.legal_destination)
 					break
 		var rank_label := str(8 - row if human_color == 1 else row + 1)
-		draw_string(font, board_rect.position + Vector2(-18, (row + 0.6) * cell), rank_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, visual_theme.ink_color)
+		draw_string(font, board_rect.position + Vector2(-24, (row + 0.6) * cell), rank_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, visual_theme.ink_color)
 		var file_label: String = "abcdefgh"[row if human_color == 1 else 7 - row]
 		draw_string(font, board_rect.position + Vector2((row + 0.45) * cell, board_rect.size.y + 19), file_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, visual_theme.ink_color)
