@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://main.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://addons/slowbrainn_chess/integration/ChessTableStage.tscn" id="2"]
+
+[node name="ChessIntegratedMain" instance=ExtResource("1")]
+next_scene = ExtResource("2")

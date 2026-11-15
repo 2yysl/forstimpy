@@ -1,0 +1,9 @@
+{
+  "name": "slowbrainn",
+  "provenance": "Counts supplied in CODEX_FORSTIMPY_CHESS_HANDOFF.md; original PGNs unavailable, not independently verified.",
+  "white_first_move_e4": {"observed": 22, "games": 23},
+  "black_c6": {"observed": 27, "games": 27},
+  "black_followup": "Usually d5; only prefer moves in matching legal positions.",
+  "rating_target": "950–1200 Chess.com; uncalibrated design goal",
+  "runtime_input": false
+}

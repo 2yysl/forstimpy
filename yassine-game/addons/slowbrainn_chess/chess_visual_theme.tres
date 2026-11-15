@@ -1,0 +1,30 @@
+[gd_resource type="Resource" load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://addons/slowbrainn_chess/chess_visual_theme.gd" id="1"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/white_pawn.svg" id="2"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/white_knight.svg" id="3"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/white_bishop.svg" id="4"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/white_rook.svg" id="5"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/white_queen.svg" id="6"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/white_king.svg" id="7"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_pawn.svg" id="8"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_knight.svg" id="9"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_bishop.svg" id="10"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_rook.svg" id="11"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_queen.svg" id="12"]
+[ext_resource type="Texture2D" path="res://addons/slowbrainn_chess/assets/pieces/black_king.svg" id="13"]
+
+[resource]
+script = ExtResource("1")
+white_pawn = ExtResource("2")
+white_knight = ExtResource("3")
+white_bishop = ExtResource("4")
+white_rook = ExtResource("5")
+white_queen = ExtResource("6")
+white_king = ExtResource("7")
+black_pawn = ExtResource("8")
+black_knight = ExtResource("9")
+black_bishop = ExtResource("10")
+black_rook = ExtResource("11")
+black_queen = ExtResource("12")
+black_king = ExtResource("13")
