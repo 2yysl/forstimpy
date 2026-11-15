@@ -23,11 +23,10 @@
 [ext_resource type="Texture2D" uid="uid://0c1jt6b3f778" path="res://features/chess/assets/ui/board_frame.svg" id="20"]
 [ext_resource type="Texture2D" uid="uid://byhfwkl7qvxn" path="res://features/chess/assets/ui/sealed_envelope.svg" id="21"]
 [ext_resource type="Texture2D" uid="uid://8sf7abosnrlk" path="res://features/chess/assets/ui/back_arrow.svg" id="22"]
-
-[ext_resource type="Texture2D" path="res://features/chess/assets/ui/left_fist_closed.svg" id="23"]
-[ext_resource type="Texture2D" path="res://features/chess/assets/ui/right_fist_closed.svg" id="24"]
-[ext_resource type="Texture2D" path="res://features/chess/assets/ui/left_fist_opened.svg" id="25"]
-[ext_resource type="Texture2D" path="res://features/chess/assets/ui/right_fist_opened.svg" id="26"]
+[ext_resource type="Texture2D" uid="uid://dgx5p7hj06qgc" path="res://features/chess/assets/ui/left_fist_closed.svg" id="23"]
+[ext_resource type="Texture2D" uid="uid://d2cjmhdpfs3du" path="res://features/chess/assets/ui/right_fist_closed.svg" id="24"]
+[ext_resource type="Texture2D" uid="uid://cy4umsbwirts2" path="res://features/chess/assets/ui/left_fist_opened.svg" id="25"]
+[ext_resource type="Texture2D" uid="uid://3yqmfl1y4o8t" path="res://features/chess/assets/ui/right_fist_opened.svg" id="26"]
 
 [resource]
 script = ExtResource("1")
