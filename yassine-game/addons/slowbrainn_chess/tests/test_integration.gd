@@ -36,7 +36,9 @@ func _run() -> void:
 	check(original.overhead and not original.changing_view, "Original main's sure path already transitions; reported indentation bug absent")
 	original.queue_free()
 	await process_frame
-	var main = load("res://addons/slowbrainn_chess/integration/ChessIntegratedMain.tscn").instantiate()
+	var entry_scene: String = ProjectSettings.get_setting("application/run/main_scene")
+	check(entry_scene == "res://addons/slowbrainn_chess/integration/ChessIntegratedMain.tscn", "Default F5 entry launches this complete chess version")
+	var main = load(entry_scene).instantiate()
 	root.add_child(main)
 	check(main.state == main.FlowState.TITLE and main.title_screen.visible, "Original title is reused")
 	main.title_screen.get_node("Continue").pressed.emit()

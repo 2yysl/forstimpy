@@ -2,6 +2,12 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 15 single-folder version launch
+
+This pre-inventory branch now launches its complete title/character/chess game through the normal F5 entry in `/home/anson/Projects/forstimpy/yassine-game/project.godot`. The latest inventory version uses the same local folder on `undo-user-inventory`; switch branches with Godot closed. This historical branch retains its `addons/slowbrainn_chess` layout. Root README/AGENTS.md document the single-folder, checkpoint and branch-push workflow; generated exports go to ignored `builds/`, and preserved local legacy material remains in ignored `archive/`.
+
+Original local Godot resource metadata was preserved in a separate commit. No bot, opening or rules logic changed. The rendered integration suite loads the configured F5 entry and passed **36/36 checks**, exit 0. Evidence: `builds/verification/previous-version-integration.log`. Checkpoints before inventory and organization remain tagged, and `main` was not changed. The sections below record earlier behavior and launch instructions.
+
 ## November 15 fixed-difficulty system
 
 Implemented the agreed yyslChess proposal: nine sourced six-full-move opening lines (Scotch/Center as White, Caro-Kann/Slav as Black) plus four equivalent move-order aliases. White always begins e4. Legal position lookup supports transpositions through Black's sixth move; from White's seventh move it is disabled. Unsupported replies automatically use the same search. Opening references, coverage and a rarer Charousek continuation are documented in `data/OPENINGS.md`.

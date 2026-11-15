@@ -8,7 +8,7 @@ From the Git repository root, with Godot 4.7.2 (the version used for verificatio
 
 ```bash
 godot --headless --editor --path yassine-game --import
-godot --path yassine-game res://addons/slowbrainn_chess/integration/ChessIntegratedMain.tscn
+godot --path yassine-game
 ```
 
 For an isolated character harness:
@@ -17,7 +17,7 @@ For an isolated character harness:
 godot --path yassine-game res://addons/slowbrainn_chess/demo/ChessCharacterTest.tscn
 ```
 
-The original project's default entry scene is unchanged. Use the explicit alternate scene above, or open it in the Godot editor and press F6.
+Open `yassine-game/project.godot` and press F5. The default entry now launches this branch's complete title/character/chess game. The isolated harness is a developer tool; see the root README for the single-folder version workflow.
 
 Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. White/Black in the top strip starts a new match in the selected color. Restart resets the current color. The back arrow or Escape returns to the character and restores the invitation.
 
