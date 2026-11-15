@@ -24,6 +24,7 @@ Checkpoint tags preserve the original versions: `checkpoint-before-inventory` at
 | Rules/perft | **59/59 passed**, exit 0 |
 | Native bot/repertoire | **237/237 passed**, exit 0 |
 | Rendered integration, including default F5 entry | **36/36 passed**, exit 0 |
+| Previous chess branch, configured F5 entry | **36/36 passed**, exit 0 |
 | Rendered inventory | **56/56 passed**, exit 0 |
 | Fresh configured-entry Web release export | Passed; no parser/resource errors |
 | Chromium gameplay/inventory/portrait | **26/26 passed**, exit 0 |
@@ -33,6 +34,8 @@ Checkpoint tags preserve the original versions: `checkpoint-before-inventory` at
 An initial headless inventory run passed 55/56 checks: its viewport-bounds assertion failed. Diagnostics showed Godot's headless display fixed at 64×64, including with `--resolution 1280x720`. The suite was then run through its intended graphical command and passed 56/56. No runtime UI change was made to hide the invalid headless layout environment; the README now specifies a display for that suite.
 
 Evidence is centralized in `builds/verification/`: `rules.log`, `bot.log`, `integration.log`, `inventory-rendered.log`, the initial `inventory.log`, `export.log`, `browser.log` and screenshots. The playable Web build is `builds/web/`. These generated files are not committed. The remaining sections record prior implementation work and its then-current launch/push status.
+
+Branch-switch verification used the same permanent folder: switched to `chess-character-implementation`, preserved its resource metadata, enabled its normal F5 entry, and ran its integration suite successfully. That branch's launch/workflow update is `0ce2470`; its historical internal layout and chess behavior remain intact. Returned to `undo-user-inventory` afterward. Evidence: `builds/verification/previous-version-integration.log`. Publication targets are both feature branches and the two checkpoint tags; `main` is excluded.
 
 ## November 15 undo and user inventory
 
