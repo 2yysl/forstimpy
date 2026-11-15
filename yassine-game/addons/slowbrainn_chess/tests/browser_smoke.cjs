@@ -106,12 +106,21 @@ const assert = require('node:assert/strict');
     check(occupied(current, 6, 4) && !occupied(current, 4, 4), 'Yes but red opens a playable board after dialogue');
     await click(116, 110, 200);
     await clickSquare(6, 7);
+    const fallbackStarted = Date.now();
     await clickSquare(4, 7, 1600);
-    current = await shot('15-fallback');
     let blackChanged = false;
-    for (let row = 0; row < 4; row++) for (let column = 0; column < 8; column++) {
-      if (occupied(current, row, column) !== occupied(initial, row, column)) blackChanged = true;
+    // A complete fixed-depth search has variable duration. Wait for the move
+    // with a bounded timeout instead of assuming the old timed engine's delay.
+    while (Date.now() - fallbackStarted < 10000) {
+      current = PNG.sync.read(await page.screenshot());
+      for (let row = 0; row < 4; row++) for (let column = 0; column < 8; column++) {
+        if (occupied(current, row, column) !== occupied(initial, row, column)) blackChanged = true;
+      }
+      if (blackChanged) break;
+      await page.waitForTimeout(500);
     }
+    console.log('BROWSER FALLBACK completion observed after', Date.now() - fallbackStarted, 'ms');
+    await shot('15-fallback');
     check(blackChanged, 'Bot continues moving after h4 book deviation');
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(700);

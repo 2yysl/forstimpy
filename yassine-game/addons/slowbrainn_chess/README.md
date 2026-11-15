@@ -55,9 +55,13 @@ The supplied SVGs live in `assets/ui/`. Replace a slot's texture in the theme an
 
 The **Typography** group exposes `interface_font`. The activity uses a local copy of that font for sharp text in the existing project's stretched viewport. Edit `idle_dialogue` and `thinking_dialogue` on the `ChessActivity` root to personalize the bubble's text. `ChessActivity.tscn` contains the named controls and artwork nodes; responsive placement lives in `chess_activity.gd`.
 
-`chess_behavior.tres` controls evaluation noise, the search time budget (650 ms), frame work budget (4 ms) and a short thinking delay. Search yields between root candidates and during evaluation. A move-generation call is indivisible, so these are scheduling budgets rather than hard real-time guarantees. Session tokens cancel stale work on restart and exit. There is no worker-thread requirement.
+`chess_behavior.tres` contains one session-independent preset: `book_full_moves = 6`, `search_depth = 3`, a 4 ms work-slice target and a 0.25 s presentation delay. Search completes its selected depth with alpha-beta pruning and stable capture/positional move ordering. It has no wall-clock strength cutoff, shuffled candidate order or random evaluation noise. Longer searches yield across frames; they do not reduce difficulty. Session tokens cancel stale work on restart and exit. No worker thread is required.
 
-The bot uses a legal, exact-position opening book and a two-ply material/position search after deviations. White initially weights e4:d4 as 22:1. Matching Black opening positions favor c6 followed by d5. Preferences are based on the handoff's summarized counts, not independently verified PGNs. The **950–1200 Chess.com rating target is uncalibrated**; no measured-strength claim is made.
+Opening variation is restricted to the small, legal position book in `chess_opening_book.gd`. White plays Scotch/Center Game lines; Black plays Caro-Kann/Slav-related lines. Book lookup stops after six full moves (12 plies). Unsupported replies automatically use the fixed search; recognized transpositions can return to the book before the cutoff. From move seven, search always applies. See `data/OPENINGS.md` for the nine reference lines, move-order aliases, sources and coverage limits. Original PGN counts remain provenance only; there is no White d4 sideline in this repertoire.
+
+The **950–1200 Chess.com rating target is uncalibrated**. Three-ply search is a repeatable difficulty policy, not a measured rating. Think time can vary with position and device. The 4 ms yield interval is a scheduling target: a synchronous legality-generation call is indivisible. Search evaluates mate/stalemate at the horizon, common insufficient material and claimable 50-move draws; future repetitions are not predicted, while the activity still enforces repetition draws in the actual match.
+
+The bot exposes per-search measurements (`last_source`, `last_completed_depth`, `last_nodes`, `last_cutoffs`, `last_search_ms`, `last_cpu_ms`, `last_max_slice_ms`). Search time includes frame waits but excludes the cosmetic delay; `last_total_ms` includes it. These are diagnostics and do not change difficulty.
 
 Draw handling includes stalemate, common insufficient-material positions, claimable threefold repetition/50-move draws, and automatic fivefold repetition/75-move draws. Claims are offered once the current position qualifies; advance claims based on a proposed next move are not implemented. This MVP does not implement a general solver for every possible dead position, clocks, resignation, PGN export, networking or matchmaking.
 
@@ -78,3 +82,11 @@ node yassine-game/addons/slowbrainn_chess/tests/browser_smoke.cjs http://127.0.0
 ```
 
 Set `CHROMIUM_PATH` if Chromium is not `/usr/bin/chromium`. See `integration/TEST_REPORT.md` for actual results, evidence locations and limitations. Test tooling is not a runtime dependency.
+
+Additional bot/repertoire verification:
+
+```bash
+godot --headless --path yassine-game --script res://addons/slowbrainn_chess/tests/test_chess_bot.gd
+```
+
+The same suite can be exported as a single-threaded release scene with `build_web.py OUTPUT --scene res://addons/slowbrainn_chess/tests/BotBrowserChecks.tscn`. Serve that directory, then run `tests/browser_bot.cjs URL` with the existing Playwright test dependencies. This checks the real GDScript implementation, not a separately reimplemented engine.

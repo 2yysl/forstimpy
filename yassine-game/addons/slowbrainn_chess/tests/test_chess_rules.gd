@@ -92,7 +92,7 @@ func _run() -> void:
 	bot.behavior.think_delay_seconds = 0.0
 	game = Rules.new()
 	var opening: Dictionary = bot.book.choose(game, game.legal_moves(), bot.rng)
-	check(Rules.uci(opening) in ["e2e4", "d2d4"], "White book legal opening")
+	check(Rules.uci(opening) == "e2e4", "White repertoire starts e4 for Scotch/Center Game")
 	game.play_uci("e2e4")
 	var response: Dictionary = await bot.choose_move(game)
 	check(Rules.uci(response) == "c7c6" and game.play(response), "Black book favors c6")

@@ -7,6 +7,11 @@ const ROOK = 4
 const QUEEN = 5
 const KING = 6
 const VALUES = [0, 100, 320, 330, 500, 900, 20000]
+const KNIGHT_STEPS = [Vector2i(1, 2), Vector2i(2, 1), Vector2i(-1, 2), Vector2i(-2, 1), Vector2i(1, -2), Vector2i(2, -1), Vector2i(-1, -2), Vector2i(-2, -1)]
+const ORTHOGONAL = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+const DIAGONAL = [Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
+const RAYS = ORTHOGONAL + DIAGONAL
+const ROOK_RIGHTS = {0: "q", 7: "k", 56: "Q", 63: "K"}
 var board: Array[int] = []
 var turn: int = 1
 var castling: String = "KQkq"
@@ -63,36 +68,37 @@ func copy_position():
 	return copy
 
 func attacked(target: int, by: int) -> bool:
+	# Scan outward from the king/target, stopping each ray at its first piece.
 	var tx: int = target % 8
 	var ty: int = target / 8
-	for i in 64:
-		if board[i] * by <= 0:
-			continue
-		var dx: int = tx - i % 8
-		var dy: int = ty - i / 8
-		match absi(board[i]):
-			PAWN:
-				if dy == -by and absi(dx) == 1:
-					return true
-			KNIGHT:
-				if absi(dx) * absi(dy) == 2:
-					return true
-			KING:
-				if maxi(absi(dx), absi(dy)) == 1:
-					return true
-			BISHOP, ROOK, QUEEN:
-				var diagonal := absi(dx) == absi(dy) and dx != 0
-				var straight := (dx == 0) != (dy == 0)
-				var kind := absi(board[i])
-				if not ((diagonal and kind != ROOK) or (straight and kind != BISHOP)):
-					continue
-				var step_x := signi(dx)
-				var step_y := signi(dy)
-				var cursor: int = i + step_x + step_y * 8
-				while cursor != target and board[cursor] == 0:
-					cursor += step_x + step_y * 8
-				if cursor == target:
-					return true
+	var pawn_y := ty + by
+	if pawn_y >= 0 and pawn_y < 8:
+		for dx in [-1, 1]:
+			var px: int = tx + dx
+			if px >= 0 and px < 8 and board[pawn_y * 8 + px] == by * PAWN:
+				return true
+	for step: Vector2i in KNIGHT_STEPS:
+		var x := tx + step.x
+		var y := ty + step.y
+		if x >= 0 and x < 8 and y >= 0 and y < 8 and board[y * 8 + x] == by * KNIGHT:
+			return true
+	for step: Vector2i in RAYS:
+		var x := tx + step.x
+		var y := ty + step.y
+		var distance := 1
+		while x >= 0 and x < 8 and y >= 0 and y < 8:
+			var piece := board[y * 8 + x]
+			if piece != 0:
+				if piece * by > 0:
+					var kind := absi(piece)
+					if kind == QUEEN or (kind == KING and distance == 1):
+						return true
+					if kind == (ROOK if step.x == 0 or step.y == 0 else BISHOP):
+						return true
+				break
+			x += step.x
+			y += step.y
+			distance += 1
 	return false
 
 func in_check(color: int) -> bool:
@@ -129,14 +135,7 @@ func _pseudo_moves() -> Array:
 				if board[to] * turn < 0 or (to == ep and board[to] == 0 and board[to + turn * 8] == -turn * PAWN):
 					_add_move(moves, i, to)
 			continue
-		var directions: Array = []
-		if kind == KNIGHT:
-			directions = [Vector2i(1, 2), Vector2i(2, 1), Vector2i(-1, 2), Vector2i(-2, 1), Vector2i(1, -2), Vector2i(2, -1), Vector2i(-1, -2), Vector2i(-2, -1)]
-		else:
-			if kind != BISHOP:
-				directions.append_array([Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)])
-			if kind != ROOK:
-				directions.append_array([Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)])
+		var directions: Array = KNIGHT_STEPS if kind == KNIGHT else (DIAGONAL if kind == BISHOP else (ORTHOGONAL if kind == ROOK else RAYS))
 		for direction: Vector2i in directions:
 			var point := Vector2i(x, y) + direction
 			while point.x >= 0 and point.x < 8 and point.y >= 0 and point.y < 8:
@@ -168,11 +167,55 @@ func _pseudo_moves() -> Array:
 func legal_moves() -> Array:
 	var moves: Array = []
 	for move in _pseudo_moves():
-		var next = copy_position()
-		next._apply(move)
-		if not next.in_check(turn):
+		if _keeps_king_safe(move):
 			moves.append(move)
 	return moves
+
+func has_legal_move() -> bool:
+	# Most search leaves have a legal pawn push. Try one directly before
+	# allocating the entire pseudo-move list; use the full path if it fails.
+	for origin in 64:
+		if board[origin] != turn * PAWN:
+			continue
+		var target := origin - turn * 8
+		if target >= 0 and target < 64 and board[target] == 0:
+			if _keeps_king_safe({"from": origin, "to": target, "promotion": QUEEN if target < 8 or target >= 56 else 0}):
+				return true
+			break
+	for move in _pseudo_moves():
+		if _keeps_king_safe(move):
+			return true
+	return false
+
+func _keeps_king_safe(move: Dictionary) -> bool:
+	# Synchronous make/unmake: legality only needs changed board squares,
+	# not a new rules object, clocks, castling strings or history per candidate.
+	var origin: int = move.from
+	var target: int = move.to
+	var piece := board[origin]
+	var captured := board[target]
+	var ep_square := -1
+	var rook_from := -1
+	var rook_to := -1
+	if absi(piece) == PAWN and target == ep and captured == 0:
+		ep_square = target + turn * 8
+		board[ep_square] = 0
+	if absi(piece) == KING and absi(target - origin) == 2:
+		rook_from = origin + (3 if target > origin else -4)
+		rook_to = origin + (1 if target > origin else -1)
+		board[rook_to] = board[rook_from]
+		board[rook_from] = 0
+	board[target] = piece if move.promotion == 0 else turn * int(move.promotion)
+	board[origin] = 0
+	var safe := not in_check(turn)
+	board[origin] = piece
+	board[target] = captured
+	if ep_square >= 0:
+		board[ep_square] = -turn * PAWN
+	if rook_from >= 0:
+		board[rook_from] = board[rook_to]
+		board[rook_to] = 0
+	return safe
 
 func _apply(move: Dictionary) -> void:
 	var origin: int = move.from
@@ -192,9 +235,9 @@ func _apply(move: Dictionary) -> void:
 			var rook_to := origin + (1 if target > origin else -1)
 			board[rook_to] = board[rook_from]
 			board[rook_from] = 0
-	for rook_square in {0: "q", 7: "k", 56: "Q", 63: "K"}:
+	for rook_square in ROOK_RIGHTS:
 		if origin == rook_square or target == rook_square:
-			castling = castling.replace({0: "q", 7: "k", 56: "Q", 63: "K"}[rook_square], "")
+			castling = castling.replace(ROOK_RIGHTS[rook_square], "")
 	ep = (origin + target) / 2 if absi(piece) == PAWN and absi(target - origin) == 16 else -1
 	halfmove = 0 if absi(piece) == PAWN or capture else halfmove + 1
 	if turn == -1:

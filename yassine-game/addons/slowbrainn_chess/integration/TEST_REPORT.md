@@ -2,6 +2,52 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 15 fixed-difficulty system
+
+Implemented the agreed yyslChess proposal: nine sourced six-full-move opening lines (Scotch/Center as White, Caro-Kann/Slav as Black) plus four equivalent move-order aliases. White always begins e4. Legal position lookup supports transpositions through Black's sixth move; from White's seventh move it is disabled. Unsupported replies automatically use the same search. Opening references, coverage and a rarer Charousek continuation are documented in `data/OPENINGS.md`.
+
+Fallback now completes exactly three plies using deterministic alpha-beta, stable capture/positional ordering, and no random evaluation bonuses or shuffled candidates. There is no elapsed-time strength cutoff. The 4 ms scheduling target and 0.25 s presentation delay remain. Cancellation contexts belong to each search, so a restarted or abandoned search cannot publish a stale move or overwrite a newer search's measurements. The runtime remains single-threaded and offline.
+
+### Final checks
+
+| Gate | Result |
+| --- | --- |
+| Existing rules/perft suite | **59/59 passed**, exit 0 |
+| New native bot/repertoire suite | **237/237 passed**, exit 0 |
+| Rendered integrated character/chess suite | **35/35 passed**, exit 0 |
+| Single-threaded release browser bot suite | **237/237 passed**, exit 0 |
+| Release browser gameplay/portrait suite | **17/17 passed**, exit 0 |
+| Both fresh Web exports | Passed, no parser/resource errors |
+
+The bot suite replays every reference line and checks book membership on each bot turn, legality, the sixth Black/seventh White boundary, repeated-position cutoff enforcement, supported transpositions and approved opening variation. It tests RNG independence outside the book, different frame-slice budgets, a fresh bot instance, mate in one, prevention of an opponent's immediate mate, winning a free queen, mid-search cancellation and a busy middlegame. Alpha-beta scores are compared with an independent unpruned three-ply traversal on small positions. Legality optimization is checked against golden perft counts and full-state restoration for castling, en passant and promotion.
+
+Native and browser benchmark positions produced identical moves, node counts and cutoff counts. These results demonstrate repeatable search work despite different run times; they do not measure Elo.
+
+| Position | Move | Nodes / cutoffs | Headless native wall / active ms | Browser wall / active ms |
+| --- | --- | --- | --- | --- |
+| After six full Caro-Kann moves | b2b4 | 3529 / 273 | 1001 / 657 | 5037 / 984 |
+| Early h4 book deviation | e7e5 | 655 / 74 | 165 / 111 | 924 / 177 |
+| Kiwipete middlegame | e2a6 | 2252 / 84 | 485 / 337 | 2511 / 501 |
+
+Benchmarks exclude the cosmetic thinking delay. Native figures are one headless run, not native-window latency. Browser figures are headless Chromium 155 with WebGL, not a device-lab measurement. The visible browser gameplay fallback was observed complete at **3871 ms**, including the presentation delay, game rendering, polling and screenshot overhead. Browser bot work slices reached approximately **7.4 ms** despite the 4 ms target because synchronous rules operations cannot be interrupted halfway through. The integration UI remains usable while searches yield; leave/restart cancellation passes.
+
+### Inefficiencies found and addressed
+
+1. The first three-ply h4 search took about 1.8 s and failed the old 1.5 s native smoke limit. Stable move ordering and the following rules optimizations brought the final headless case to about 0.17 s. These are development measurements, not a statistically controlled speedup claim.
+2. Legal-move validation cloned a complete rules object for every candidate. It now makes and restores only changed board squares synchronously, including castling, en passant and promotion. No caller state is left modified.
+3. Leaf terminal checks initially generated every legal move. They now stop at the first legal move, trying one pawn push first and falling back to complete generation when necessary. Checkmate/stalemate detection is retained at the horizon.
+4. Attack detection scanned all board pieces repeatedly. Target-based pawn/knight/ray tests and shared direction/castling constants reduce scanning and allocation.
+5. The old browser test assumed a move after a fixed 1.6 s sleep. A complete fixed-depth search has variable duration; the test now waits for an actual reply with a 10 s failure timeout and prints the observed latency. The initial browser timing failure is not reported as a pass.
+
+### Remaining performance/strength limits
+
+- Frame waiting dominates browser wall time in the measured cases. Some full searches still take several seconds. The agreed depth was preserved; there is no hidden downgrade, timed partial-search selection, new external engine or adaptive difficulty. A hard response-time requirement would need an explicit trade-off decision; the current policy prioritizes consistent search depth.
+- The 4 ms frame budget is a yield target, not a hard real-time limit. Increasing it could reduce waits at the cost of more work per frame; it was not changed in this implementation.
+- Search is deliberately three-ply, without quiescence, transposition tables or learned evaluation. Future repetitions are not predicted in search, while repetition draws remain enforced in the actual activity. It does not establish a 950–1200 Chess.com rating.
+- Coverage is finite. Unlisted opening replies enter fixed-strength search even before move six; recognized transpositions may return to the book before the cutoff.
+
+Final browser logs, JSON measurements, exports and screenshots are in `/tmp/yyslChess-fixed-xyr_vnp3/`. The native suite outputs are recorded in the execution transcript. Reproduce with the existing rules/integration commands and `tests/test_chess_bot.gd`; export `tests/BotBrowserChecks.tscn` with the helper and run `tests/browser_bot.cjs URL` to repeat the real release-build bot checks. No additional runtime dependencies were added. Existing visual-theme edits and untracked import sidecars were preserved.
+
 ## November 15 bot identity update
 
 Renamed the bot to `yyslChess` in the displayed opponent name, draw messages, runtime node name and personality metadata. `chess_behavior.tres` now exposes `display_name` as the shared identity setting. Existing resource paths retain the `slowbrainn_chess` directory for compatibility. Rendered integration: **35/35 checks passed**, exit 0. Search and opening behavior were unchanged by this rename.
