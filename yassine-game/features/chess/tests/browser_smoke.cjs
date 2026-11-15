@@ -1,6 +1,5 @@
-// npm install playwright pngjs (or set NODE_PATH to an existing installation).
-// Start build_web.py's export on localhost, then:
-// node browser_smoke.cjs http://127.0.0.1:8765 /tmp/chess-browser-evidence
+// Uses real canvas input. Run against build_web.py's locally served export.
+// Dependencies outside the game: playwright-core and pngjs.
 const { chromium } = require('playwright-core');
 const { PNG } = require('pngjs');
 const fs = require('node:fs');
@@ -16,14 +15,13 @@ const assert = require('node:assert/strict');
     args: ['--no-sandbox', '--enable-webgl', '--enable-unsafe-swiftshader'],
   });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  const consoleLines = [];
-  const errors = [];
+  const consoleLines = [], errors = [];
   page.on('console', message => {
     consoleLines.push(`${message.type()}: ${message.text()}`);
     if (message.type() === 'error') errors.push(message.text());
   });
   page.on('pageerror', error => errors.push(error.message));
-  let checks = 0;
+  let checks = 0, humanColour = 1;
   const check = (condition, description) => {
     assert.ok(condition, description);
     checks++;
@@ -33,134 +31,146 @@ const assert = require('node:assert/strict');
   const click = async (x, y, delay = 180) => { await page.mouse.click(x, y); await page.waitForTimeout(delay); };
   const pixel = (image, x, y) => {
     const offset = (Math.floor(y) * image.width + Math.floor(x)) * 4;
-    return [...image.data.subarray(offset, offset + 3)];
+    return [...image.data.subarray(offset, offset + 3)].join();
   };
   const board = { x: 422, y: 252, size: 436 };
-  const center = (row, column) => [board.x + (column + 0.5) * board.size / 8, board.y + (row + 0.5) * board.size / 8];
+  const visual = (row, column) => humanColour === 1 ? [row, column] : [7 - row, 7 - column];
+  const screenCenter = (row, column) => [board.x + (column + 0.5) * board.size / 8, board.y + (row + 0.5) * board.size / 8];
+  const center = (row, column) => screenCenter(...visual(row, column));
   const clickSquare = async (row, column, delay = 180) => click(...center(row, column), delay);
-  // Board square centers are away from borders and labels. A piece or marker
-  // differs from that square's background color at its center.
   const occupied = (image, row, column) => {
-    const x = board.x + column * board.size / 8, y = board.y + row * board.size / 8;
-    return pixel(image, ...center(row, column)).join() !== pixel(image, x + 4, y + 4).join();
+    const [r, c] = visual(row, column);
+    return pixel(image, ...center(row, column)) !== pixel(image, board.x + c * board.size / 8 + 4, board.y + r * board.size / 8 + 4);
+  };
+  const signature = image => Array.from({ length: 64 }, (_, n) => occupied(image, Math.floor(n / 8), n % 8)).join();
+  const handPoint = hand => {
+    const extent = Math.min((board.size - 16) / 2, 220, board.size - 38);
+    return [board.x + hand * (extent + 16) + extent / 2, board.y + (board.size - extent - 38) / 2 + extent * 0.666];
+  };
+  const choose = async (hand, name) => {
+    const before = await shot(`${name}-closed`);
+    const point = handPoint(hand);
+    await click(...point, 100);
+    const reveal = await shot(`${name}-reveal`);
+    const colour = pixel(reveal, ...point);
+    check(colour === '255,242,204' || colour === '36,51,51', 'Chosen fist reveals a white or black queen');
+    humanColour = colour === '255,242,204' ? 1 : -1;
+    console.log(`BROWSER assigned ${humanColour === 1 ? 'White' : 'Black'} via ${hand === 0 ? 'left' : 'right'} fist`);
+    check(pixel(before, ...handPoint(1 - hand)) === pixel(reveal, ...handPoint(1 - hand)), 'Unchosen fist stays closed');
+    await click(...handPoint(1 - hand), 100);
+    const locked = PNG.sync.read(await page.screenshot());
+    check(pixel(locked, ...point) === colour, 'Clicking the other fist cannot change the revealed colour');
+    await page.waitForTimeout(1550);
+    const started = await shot(`${name}-board`);
+    const nearKing = screenCenter(7, humanColour === 1 ? 4 : 3);
+    check(pixel(started, ...nearKing) === colour, 'Board automatically orients to the revealed colour');
+    return started;
+  };
+  const humanMove = async (delay = 1200) => {
+    const from = humanColour === 1 ? [6, 4] : [1, 2];
+    const to = humanColour === 1 ? [4, 4] : [2, 2];
+    await clickSquare(...from);
+    await clickSquare(...to, delay);
+    return { from, to };
   };
   try {
     await page.goto(process.argv[2] || 'http://127.0.0.1:8765/');
     await page.waitForSelector('#status', { state: 'detached', timeout: 30000 });
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(1000);
     await shot('01-title');
     await click(640, 590, 2300);
-    const invitation = await shot('02-character');
-    check(pixel(invitation, 645, 670).join() === '187,128,94', 'Invitation has no Not now button');
-    await click(430, 670, 500);
-    const initial = await shot('04-start');
-    check(occupied(initial, 6, 4) && !occupied(initial, 4, 4), 'Sure opens starting position');
-    await clickSquare(6, 4);
-    const selected = await shot('05-selected');
-    check(occupied(selected, 4, 4), 'Legal e4 destination highlights after selecting e2');
-    await clickSquare(3, 4);
-    const illegal = await shot('06-illegal');
-    check(occupied(illegal, 6, 4) && !occupied(illegal, 3, 4), 'Illegal e2-e5 is rejected');
-    await clickSquare(6, 4);
-    await clickSquare(4, 4, 1200);
-    let current = await shot('07-e4-c6');
-    check(!occupied(current, 6, 4) && occupied(current, 4, 4), 'Human e4 executes');
-    check(!occupied(current, 1, 2) && occupied(current, 2, 2), 'Release bot replies c6 from its opening book');
-    await click(968, 674, 150);
-    current = await shot('07b-review');
-    check(occupied(current, 1, 2) && !occupied(current, 2, 2) && occupied(current, 4, 4), 'Undo previews the position before the latest bot move');
-    await clickSquare(6, 3);
-    await clickSquare(4, 3);
-    await click(968, 674, 150);
-    current = await shot('07c-live');
-    check(occupied(current, 2, 2) && occupied(current, 6, 3) && !occupied(current, 4, 3), 'Review input cannot alter live chess and undo returns to it');
-    await clickSquare(6, 3);
-    await clickSquare(4, 3, 1200);
-    current = await shot('08-d4-d5');
-    check(!occupied(current, 1, 3) && occupied(current, 3, 3), 'Release bot follows with d5 in matching position');
-    // Restart while a reply is queued, then ensure the position stays fresh.
-    await click(116, 110, 300);
-    await clickSquare(6, 4, 20);
-    await clickSquare(4, 4, 20);
-    await click(116, 110, 1200);
-    current = await shot('09-restart-cancellation');
-    check(occupied(current, 6, 4) && !occupied(current, 4, 4) && occupied(current, 1, 2), 'Restart cancels a pending reply');
-    await click(254, 76, 1200);
-    current = await shot('10-human-black');
-    check(pixel(current, ...center(7, 3)).join() === '36,51,51', 'Black king appears on the near rank in Black orientation');
-    // White e4 appears on d5 visually from Black's perspective; d4 on e5.
-    check((!occupied(current, 1, 3) && occupied(current, 3, 3)) || (!occupied(current, 1, 4) && occupied(current, 3, 4)), 'Bot White makes a legal opening with Black orientation');
-    await clickSquare(6, 5);
-    await clickSquare(5, 5, 1400);
-    current = await shot('10b-black-c6');
-    check(!occupied(current, 6, 5) && occupied(current, 5, 5), 'Human Black can move c7-c6 using the rotated board');
-    await click(128, 665, 400);
-    await shot('11-table-return');
-    await click(640, 530, 300);
-    await shot('12-reentry');
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
-    // Start a fresh title flow to exercise both affirmative responses again.
-    await page.reload();
-    await page.waitForSelector('#status', { state: 'detached', timeout: 30000 });
-    await page.waitForTimeout(700);
-    await click(640, 590, 2300);
+    const invitation = await shot('02-invitation');
+    check(pixel(invitation, 645, 670) === '187,128,94', 'Invitation retains the two affirmative choices');
     await click(430, 670, 400);
-    current = await shot('13-sure');
-    check(occupied(current, 6, 4) && !occupied(current, 4, 4), 'Sure opens a playable board');
-    await click(128, 665, 300);
-    await click(860, 670, 2500);
-    current = await shot('14-yes-but-red');
-    check(occupied(current, 6, 4) && !occupied(current, 4, 4), 'Yes but red opens a playable board after dialogue');
-    await click(116, 110, 200);
-    await clickSquare(6, 7);
-    const fallbackStarted = Date.now();
-    await clickSquare(4, 7, 1600);
-    let blackChanged = false;
-    // A complete fixed-depth search has variable duration. Wait for the move
-    // with a bounded timeout instead of assuming the old timed engine's delay.
-    while (Date.now() - fallbackStarted < 10000) {
-      current = PNG.sync.read(await page.screenshot());
-      for (let row = 0; row < 4; row++) for (let column = 0; column < 8; column++) {
-        if (occupied(current, row, column) !== occupied(initial, row, column)) blackChanged = true;
-      }
-      if (blackChanged) break;
-      await page.waitForTimeout(500);
-    }
-    console.log('BROWSER FALLBACK completion observed after', Date.now() - fallbackStarted, 'ms');
-    await shot('15-fallback');
-    check(blackChanged, 'Bot continues moving after h4 book deviation');
-    await click(1075, 674, 150);
-    current = await shot('17-rps-challenge');
-    check(pixel(current, 10, 400).join() !== '255,250,240', 'Takeback opens a modal rock-paper-scissors challenge');
-    check(pixel(current, 425, 600).join() !== '255,250,240', 'Desktop RPS panel stays compact after text wraps');
-    await clickSquare(6, 6);
-    await clickSquare(4, 6);
-    await click(495, 327, 200);
-    await shot('18-rps-result');
+    const closed = await shot('03-fists');
+    check(pixel(closed, 527, 486) !== '255,250,240' && pixel(closed, 753, 486) !== '255,250,240', 'Sure enters two closed fist placeholders');
+    // Removed top-strip controls cannot bypass the colour choice.
+    await click(116, 110);
+    await click(254, 76);
+    check(pixel(PNG.sync.read(await page.screenshot()), 527, 486) === pixel(closed, 527, 486), 'Former colour/restart locations cannot bypass the fists');
+    let initial = await choose(0, '04-left');
+    check(humanColour === 1 ? occupied(initial, 6, 4) && !occupied(initial, 4, 4) : occupied(initial, 4, 4) && !occupied(initial, 6, 4), 'White moves first, including the character when player draws Black');
+    const from = humanColour === 1 ? [6, 4] : [1, 2];
+    const to = humanColour === 1 ? [4, 4] : [2, 2];
+    const illegalTo = humanColour === 1 ? [3, 4] : [4, 2];
+    await clickSquare(...from);
+    check(occupied(await shot('05-selected'), ...to), 'Assigned player can select a pawn and see a legal destination');
+    await clickSquare(...illegalTo);
+    check(occupied(await shot('06-illegal'), ...from), 'Illegal pawn move is rejected');
+    await humanMove();
+    let current = await shot('07-first-reply');
+    check(!occupied(current, ...from) && occupied(current, ...to), 'Player can make a legal move in the assigned colour');
+    const botFrom = humanColour === 1 ? [1, 2] : [6, 3];
+    const botTo = humanColour === 1 ? [2, 2] : [4, 3];
+    check(!occupied(current, ...botFrom) && occupied(current, ...botTo), 'Character follows the appropriate opening as the opposite colour');
+    const liveSignature = signature(current);
+    await click(968, 674);
+    current = await shot('08-undo-preview');
+    check(occupied(current, ...botFrom) && !occupied(current, ...botTo), 'Undo still previews the previous character move');
+    await clickSquare(humanColour === 1 ? 6 : 1, 5);
+    await clickSquare(humanColour === 1 ? 4 : 3, 5);
+    await click(968, 674);
+    check(signature(await shot('09-live')) === liveSignature, 'Preview input cannot change the match');
+    await click(1075, 674);
+    current = await shot('10-rps');
+    check(pixel(current, 10, 400) !== '255,250,240' && pixel(current, 425, 600) !== '255,250,240', 'Takeback opens a compact modal RPS challenge');
+    await clickSquare(humanColour === 1 ? 6 : 1, 5);
+    await clickSquare(humanColour === 1 ? 4 : 3, 5);
+    await click(495, 327);
+    await shot('11-rps-result');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(200);
-    current = await shot('19-after-rps');
-    check(occupied(current, 6, 6) && !occupied(current, 4, 6), 'RPS modal blocks underlying chess moves');
-    check(occupied(current, 6, 7) !== occupied(current, 4, 7), 'RPS returns a valid restored or unchanged chess position');
-    await click(1190, 674, 150);
-    await clickSquare(6, 3);
-    await clickSquare(4, 3);
-    current = await shot('20-resigned');
-    check(occupied(current, 6, 3) && !occupied(current, 4, 3), 'Resign ends the match and blocks further chess moves');
+    current = await shot('12-after-rps');
+    check(occupied(current, humanColour === 1 ? 6 : 1, 5) && !occupied(current, humanColour === 1 ? 4 : 3, 5), 'RPS blocks underlying chess input');
+    check(occupied(current, ...from) !== occupied(current, ...to), 'RPS returns a restored or unchanged valid turn');
+    await click(1190, 674);
+    const resigned = signature(await shot('13-resigned'));
+    await humanMove(300);
+    check(signature(PNG.sync.read(await page.screenshot())) === resigned, 'Resign blocks further moves');
+    // Re-entry is the user-facing way to start another colour choice.
+    await click(128, 665, 300);
+    await click(430, 670, 300);
+    await choose(1, '14-right');
+    await humanMove(20);
+    await click(128, 665, 100);
+    await click(430, 670, 1200);
+    const fresh = await shot('15-reentry');
+    check(pixel(fresh, 527, 486) !== '255,250,240' && pixel(fresh, 753, 486) !== '255,250,240', 'Leaving pending AI work re-enters fresh closed fists');
+    await click(128, 665, 200);
+    await click(860, 670, 2500);
+    initial = await choose(1, '16-yes-but-red');
+    const deviationFrom = humanColour === 1 ? [6, 7] : [1, 0];
+    const deviationTo = humanColour === 1 ? [4, 7] : [2, 0];
+    await clickSquare(...deviationFrom);
+    const started = Date.now();
+    await clickSquare(...deviationTo, 1000);
+    let replied = false;
+    while (Date.now() - started < 12000) {
+      current = PNG.sync.read(await page.screenshot());
+      for (let n = 0; n < 64; n++) {
+        const square = [Math.floor(n / 8), n % 8];
+        if ([deviationFrom.join(), deviationTo.join()].includes(square.join())) continue;
+        if (occupied(current, ...square) !== occupied(initial, ...square)) replied = true;
+      }
+      if (replied) break;
+      await page.waitForTimeout(400);
+    }
+    console.log('BROWSER FALLBACK completion observed after', Date.now() - started, 'ms');
+    check(replied, 'Character continues after an unsupported opening in the assigned colour');
+    await shot('17-fallback');
+    await click(128, 665, 200);
+    await click(430, 670, 300);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForTimeout(700);
-    const narrow = await shot('16-portrait');
-    check(narrow.width === 390 && narrow.height === 844, 'Portrait layout renders');
-    check(pixel(narrow, 360, 286).join() === '112,147,145', 'Portrait board uses the available width instead of shrinking desktop controls');
-    check(pixel(narrow, 18, 730).join() !== '255,250,240', 'Portrait inventory box is visible within the viewport');
-    await click(195, 140, 200);
     Object.assign(board, { x: 24, y: 280, size: 342 });
-    await clickSquare(6, 4);
-    await clickSquare(4, 4, 1200);
+    await page.waitForTimeout(500);
+    await shot('18-portrait-fists');
+    current = await choose(1, '19-portrait');
+    check(pixel(current, 360, 286) === '112,147,145', 'Portrait board retains its readable size after the choice');
+    check(pixel(current, 18, 730) !== '255,250,240', 'Portrait inventory remains visible');
+    await humanMove();
     await click(195, 748, 300);
-    current = await shot('21-portrait-rps');
-    check(pixel(current, 10, 400).join() !== '255,250,240' && pixel(current, 20, 650).join() !== '255,250,240', 'Portrait RPS opens and fits within the screen');
+    current = await shot('20-portrait-rps');
+    check(pixel(current, 10, 400) !== '255,250,240' && pixel(current, 20, 650) !== '255,250,240', 'Portrait RPS still opens and fits the screen');
     check(errors.length === 0, 'No browser console errors or script exceptions');
     console.log(`BROWSER: ${checks}/${checks} checks passed; Chromium ${await browser.version()}`);
   } finally {

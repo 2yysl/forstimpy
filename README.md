@@ -4,7 +4,9 @@ One local repository contains the complete game and its Git versions. The perman
 
 ## Open and play
 
-Open `yassine-game/project.godot` in Godot and press **F5**. On `undo-user-inventory`, the normal game launch includes the original title, character invitation, yyslChess and the inventory. No alternate project or test scene is needed.
+Open `yassine-game/project.godot` in Godot and press **F5**. On `fist-colour-selection`, the normal game launch includes the original title, character invitation, fist colour choice, yyslChess and the inventory. No alternate project or test scene is needed.
+
+When entering chess, choose one of the two closed fists. The selected hand opens to reveal a White or Black queen, assigning your colour. The board starts automatically after the brief reveal. Manual colour buttons and Restart have been removed. Use Back and enter chess again for a fresh match and choice.
 
 ```bash
 godot --editor --path yassine-game
@@ -31,9 +33,11 @@ The chess demo and tests are developer tools inside this project. They are not a
 | --- | --- |
 | `main` | Original published game; merges require the user's explicit instruction |
 | `chess-character-implementation` | Chess with fixed difficulty, before inventory |
-| `undo-user-inventory` | Current working game with inventory and consolidated organization |
+| `undo-user-inventory` | Saved game with inventory and consolidated organization |
+| `fist-colour-selection` | Current working game with fist-based colour assignment |
 | `checkpoint-before-inventory` | Saved commit immediately before inventory work |
 | `checkpoint-before-organization` | Saved inventory commit before this reorganization |
+| `checkpoint-before-fist-selection` | Saved consolidated inventory game before fist selection |
 
 Branches and checkpoint tags preserve versions in Git. Switching branches updates the same local folder; older versions retain their historical internal layout. Save and commit work, close Godot, switch the branch, then reopen the same `project.godot`.
 
@@ -41,7 +45,7 @@ Before a large change: fetch updates, commit the current authorized work, tag a 
 
 ```bash
 git fetch origin
-git switch undo-user-inventory
+git switch fist-colour-selection
 ```
 
 ## Web build

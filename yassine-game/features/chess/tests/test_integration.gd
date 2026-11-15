@@ -24,6 +24,11 @@ func wait_for_bot(activity) -> void:
 		await process_frame
 	check(is_instance_valid(activity) and not activity.thinking, "Bot finishes without freezing")
 
+func choose_white(activity) -> void:
+	activity.fist_choice.left_colour = 1
+	activity.fist_choice.get_node("Left").pressed.emit()
+	await pause(activity.COLOUR_REVEAL_SECONDS + 0.1)
+
 func _run() -> void:
 	# Verify the suspected baseline bug against the actual current checkout.
 	var original = load("res://scenes/ui/table_scene.tscn").instantiate()
@@ -56,6 +61,8 @@ func _run() -> void:
 	await process_frame
 	check(is_instance_valid(stage.activity), "Board hotspot opens chess during invitation")
 	var activity = stage.activity
+	check(activity.choosing_colour and activity.status.text == "choose a fist.", "Chess entry begins with the character's fist choice")
+	await choose_white(activity)
 	check(activity.game.board.count(0) == 32 and activity.human_color == 1, "White game starts with 32 pieces")
 	check(activity.header.texture != null and activity.portrait.texture != null and activity.get_node("TopStrip/Memories").texture != null, "Top strip has replaceable frame, portrait and memory art")
 	check(activity.dialogue_bubble.get_rect().end.y < activity.board_rect.position.y and activity.board_frame.texture != null and activity.envelope.texture != null and activity.get_node("Back/Arrow").texture != null, "Dialogue sits above the large board with envelope and back artwork")
@@ -107,6 +114,7 @@ func _run() -> void:
 	await pause(2.4)
 	check(is_instance_valid(stage.activity), "Yes but red connected callback opens chess")
 	activity = stage.activity
+	await choose_white(activity)
 	# Texture replacement is independent of the rules and retains aspect ratio.
 	var key: String = activity.game.position_key()
 	var image := Image.create(40, 80, false, Image.FORMAT_RGBA8)

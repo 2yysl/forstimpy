@@ -2,6 +2,36 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 15 fist colour selection
+
+Created `fist-colour-selection` from the tested inventory branch at `df912cb`, in the existing `/home/anson/Projects/forstimpy` checkout. Tag `checkpoint-before-fist-selection` preserves that starting version. No additional clone or worktree was created.
+
+Every chess entry now starts with two closed fists and the character's prompt, **"choose a fist."** A dedicated RNG assigns one White queen and one Black queen to opposite hands before either can be selected. Choosing a hand opens only that hand, reveals its queen, and locks both choices. The other hand remains closed. After a 1.2-second reveal, the match starts automatically in the selected colour, with the board oriented accordingly. White always moves first; the character opens when the player draws Black. The user explicitly requested removing both manual colour buttons and Restart. Back/Escape can leave during selection or reveal; re-entry presents a fresh choice.
+
+`FistChoice.tscn` and `fist_choice.gd` own the two hand buttons, committed assignment and artwork swap. The activity owns the reveal timer and match startup. Four original SVG placeholders are exposed in the existing visual theme as `left_fist_closed`, `right_fist_closed`, `left_fist_opened` and `right_fist_opened`. Queens use the existing White/Black queen textures as separate layers. The README documents replacement canvases and queen-placement anchors. No extra colour-specific hand images, asset service, animation loop or runtime dependency is needed.
+
+### Verification
+
+| Gate | Result |
+| --- | --- |
+| New fist-choice native suite | **56/56 passed**, both headless and rendered |
+| Existing rendered inventory suite | **56/56 passed** |
+| Full rendered integration, including F5 entry | **37/37 passed** |
+| Fresh configured-entry Web release export | Passed; no parser/resource errors |
+| Real-input Chromium gameplay/fists/inventory | **36/36 passed** |
+| Visual review | Desktop 1280×720 and portrait 390×844; closed fists, open left/right hands and White/Black queen reveals |
+
+The new native suite forces all four hand/colour combinations and verifies hidden queens, independent RNG, blocked chess/inventory actions before play, matching queen textures, only the chosen hand opening, repeat-click protection, automatic startup and legal replies for both player colours. It tests leaving and resetting during a pending reveal and replacing artwork without changing the committed colour. Existing inventory tests explicitly start a known match fixture; integration tests enter via the real fist buttons before exercising the game. Browser tests read the actual revealed queen colour, then adapt their clicks to the resulting orientation. They exercise both fist buttons, affirmative invitation paths, stale AI cancellation on exit/re-entry, undo, RPS, resign and portrait play. This run drew White and Black in the browser; native forced-case coverage does not depend on random outcomes.
+
+### Efficiency and limits
+
+- Assignment uses one random bit per entry, on a separate RNG. Opening-book RNG, fixed search depth, evaluation, rules and move history implementation were unchanged; their existing 59-rule and 237-bot results remain applicable and were not repeated for this UI feature.
+- There is no per-frame hand polling, repeated shuffling, extra click to continue or new background task. A session token invalidates the single reveal timer on exit or replacement, preventing delayed AI startup after leaving.
+- The character's unchanged fixed-strength search can still take several seconds outside its book. One release-browser reply after Black's early `a6` deviation was observed at approximately 8.1 seconds, including frame waits and screenshot polling. This is an existing search-policy limit, not a measured Elo or a new timing guarantee; strength was preserved.
+- Hand artwork is intentionally placeholder quality. Replacement open palms should use the documented canvas/palm location, or their queen TextureRect anchors should be adjusted.
+
+Evidence: `builds/fist-selection/verification/` contains the export/browser logs, screenshots and all three native suite logs. The playable Web export is `builds/fist-selection/web/`. These outputs remain local under ignored `builds/`. Normal F5 launch still uses the same permanent Godot project. The new branch and checkpoint are the publication targets; earlier branches and `main` remain unchanged. Sections below record earlier controls and layouts.
+
 ## November 15 single-project organization
 
 Consolidated development into `/home/anson/Projects/forstimpy`, checked out on `undo-user-inventory`. There is one active Git worktree and one Godot project, `yassine-game/project.godot`. The duplicate inventory worktree was retired after all original local edits were saved and compared with their committed copies. `main` remains at `bbe1478a6210230c9573a65e58542e9abffad23f`.

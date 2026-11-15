@@ -24,6 +24,11 @@
 [ext_resource type="Texture2D" uid="uid://byhfwkl7qvxn" path="res://features/chess/assets/ui/sealed_envelope.svg" id="21"]
 [ext_resource type="Texture2D" uid="uid://8sf7abosnrlk" path="res://features/chess/assets/ui/back_arrow.svg" id="22"]
 
+[ext_resource type="Texture2D" path="res://features/chess/assets/ui/left_fist_closed.svg" id="23"]
+[ext_resource type="Texture2D" path="res://features/chess/assets/ui/right_fist_closed.svg" id="24"]
+[ext_resource type="Texture2D" path="res://features/chess/assets/ui/left_fist_opened.svg" id="25"]
+[ext_resource type="Texture2D" path="res://features/chess/assets/ui/right_fist_opened.svg" id="26"]
+
 [resource]
 script = ExtResource("1")
 top_strip = ExtResource("14")
@@ -35,6 +40,10 @@ dialogue_bubble = ExtResource("19")
 board_frame = ExtResource("20")
 sealed_envelope = ExtResource("21")
 back_arrow = ExtResource("22")
+left_fist_closed = ExtResource("23")
+right_fist_closed = ExtResource("24")
+left_fist_opened = ExtResource("25")
+right_fist_opened = ExtResource("26")
 white_pawn = ExtResource("2")
 white_knight = ExtResource("3")
 white_bishop = ExtResource("4")

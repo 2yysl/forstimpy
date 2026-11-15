@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://features/chess/chess_activity.gd" id="1"]
+[ext_resource type="PackedScene" path="res://features/chess/FistChoice.tscn" id="2"]
 
 [node name="ChessActivity" type="Control"]
 layout_mode = 0
@@ -29,35 +30,13 @@ mouse_filter = 2
 layout_mode = 0
 theme_override_constants/separation = 6
 
-[node name="Colors" type="HBoxContainer" parent="TopStrip/Controls"]
+[node name="Assignment" type="Label" parent="TopStrip/Controls"]
 layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="PlayWhite" type="Button" parent="TopStrip/Controls/Colors"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 28)
-text = "White"
-toggle_mode = true
-tooltip_text = "Start a new game as White"
-
-[node name="PlayBlack" type="Button" parent="TopStrip/Controls/Colors"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 28)
-text = "Black"
-toggle_mode = true
-tooltip_text = "Start a new game as Black"
-
-[node name="Actions" type="HBoxContainer" parent="TopStrip/Controls"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Restart" type="Button" parent="TopStrip/Controls/Actions"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 28)
-text = "Restart"
+custom_minimum_size = Vector2(0, 58)
+text = "White or Black?"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
 
 [node name="Portrait" type="TextureRect" parent="TopStrip"]
 layout_mode = 0
@@ -121,6 +100,10 @@ stretch_mode = 5
 layout_mode = 0
 mouse_filter = 2
 autowrap_mode = 3
+
+[node name="FistChoice" parent="." instance=ExtResource("2")]
+layout_mode = 0
+z_index = 2
 
 [node name="Promotion" type="PanelContainer" parent="."]
 layout_mode = 0

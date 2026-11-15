@@ -19,7 +19,9 @@ godot --path yassine-game res://features/chess/demo/ChessCharacterTest.tscn
 
 Open `yassine-game/project.godot` and press F5 to launch the complete game. The configured entry scene is `integration/ChessIntegratedMain.tscn`, which reuses the original title and game flow and selects the chess-enabled character stage. The isolated harness above is a developer tool.
 
-Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. White/Black in the top strip starts a new match in the selected color. Restart resets the current color. The back arrow returns to the character and restores the invitation. Escape first closes an open challenge or preview; otherwise it leaves the match.
+Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. The character asks **"choose a fist."** Both fists start closed, with one White queen and one Black queen assigned randomly to opposite hands before input. Selecting either hand opens only that hand and shows its queen. The result is locked immediately; after 1.2 seconds the board starts in that colour. White moves first, so yyslChess makes the opening move when you draw Black. The colour shuffle has its own RNG and does not affect opening variation or AI strength.
+
+Manual White/Black buttons and Restart have been removed. Use the back arrow and enter chess again for a fresh match and choice. Back/Escape works during both the choice and reveal; leaving cancels delayed startup. Chess and inventory actions are blocked until the reveal finishes. During play, select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. Escape first closes an open challenge or preview; otherwise it leaves the match and restores the invitation.
 
 ## Inventory
 
@@ -29,7 +31,7 @@ The bottom inventory contains three placeholder buttons, with named nodes in `Ch
 - **takeback** opens rock–paper–scissors against yyslChess during an active match. Win one decisive round to restore the start of your previous turn, removing your last move and the character's reply if it has arrived. Ties replay. A win or loss consumes that committed player move's challenge; you must make another chess move before trying again. A loss leaves the position unchanged. Cancelling before a decisive result keeps the attempt available. Older takebacks cannot be chained after a win.
 - **resign** concedes the match to the character immediately. This replaces the former player-facing Claim draw control.
 
-The character commits an independently randomized RPS hand before each choice. Chess input is blocked while the challenge is open, and any pending bot reply is cancelled; closing an unresolved or lost challenge resumes that turn. A successful takeback restores pieces, castling rights, en passant, move counters, repetition history, last-move highlights and the opening RNG state. Replaying the same move therefore preserves the book reply. Only the three most recent before-move snapshots are retained, sufficient for these actions. Restarting or changing colors clears inventory history and challenge eligibility.
+The character commits an independently randomized RPS hand before each choice. Chess input is blocked while the challenge is open, and any pending bot reply is cancelled; closing an unresolved or lost challenge resumes that turn. A successful takeback restores pieces, castling rights, en passant, move counters, repetition history, last-move highlights and the opening RNG state. Replaying the same move therefore preserves the book reply. Only the three most recent before-move snapshots are retained, sufficient for these actions. A fresh match clears inventory history and challenge eligibility.
 
 No inventory currency, persistence or final artwork is introduced. The controls reuse the current theme and stay below or beside the board according to available space.
 
@@ -65,9 +67,11 @@ All scene artwork is configured in the same visual theme, under **Scene artwork*
 
 The supplied SVGs live in `assets/ui/`. Replace a slot's texture in the theme and rerun the scene; no chess code changes are needed. Portraits, memories, envelope and arrow preserve aspect ratio. The strip and board frame use nine-patch borders (14 px and 12 px respectively); the dialogue background stretches to its layout area. Choose matching margins when replacing frame artwork.
 
+The **Fist choice artwork** group adds four independent slots: `left_fist_closed`, `right_fist_closed`, `left_fist_opened`, `right_fist_opened`. Their SVG placeholders are 240×240 with transparent backgrounds. Replacement open-hand art should leave the palm around the same location; the separate `Hand/Queen` TextureRect in `FistChoice.tscn` places the queen within normalized bounds `(0.32, 0.45)`–`(0.68, 0.81)`. Adjust those anchors for a different palm position. White/Black queens reuse the existing piece texture slots, so the four hand images do not need colour variants. `fist_choice.gd` handles the committed assignment and image swap; the activity owns the reveal delay and match startup.
+
 The **Typography** group exposes `interface_font`. The activity uses a local copy of that font for sharp text in the existing project's stretched viewport. Edit `idle_dialogue` and `thinking_dialogue` on the `ChessActivity` root to personalize the bubble's text. `ChessActivity.tscn` contains the named controls and artwork nodes; responsive placement lives in `chess_activity.gd`.
 
-`chess_behavior.tres` contains one session-independent preset: `book_full_moves = 6`, `search_depth = 3`, a 4 ms work-slice target and a 0.25 s presentation delay. Search completes its selected depth with alpha-beta pruning and stable capture/positional move ordering. It has no wall-clock strength cutoff, shuffled candidate order or random evaluation noise. Longer searches yield across frames; they do not reduce difficulty. Session tokens cancel stale work on restart and exit. No worker thread is required.
+`chess_behavior.tres` contains one session-independent preset: `book_full_moves = 6`, `search_depth = 3`, a 4 ms work-slice target and a 0.25 s presentation delay. Search completes its selected depth with alpha-beta pruning and stable capture/positional move ordering. It has no wall-clock strength cutoff, shuffled candidate order or random evaluation noise. Longer searches yield across frames; they do not reduce difficulty. Session tokens cancel stale work when starting a match or leaving. No worker thread is required.
 
 Opening variation is restricted to the small, legal position book in `chess_opening_book.gd`. White plays Scotch/Center Game lines; Black plays Caro-Kann/Slav-related lines. Book lookup stops after six full moves (12 plies). Unsupported replies automatically use the fixed search; recognized transpositions can return to the book before the cutoff. From move seven, search always applies. See `data/OPENINGS.md` for the nine reference lines, move-order aliases, sources and coverage limits. Original PGN counts remain provenance only; there is no White d4 sideline in this repertoire.
 
@@ -81,6 +85,7 @@ Draw handling includes stalemate, common insufficient-material positions, automa
 
 ```bash
 godot --headless --path yassine-game --script res://features/chess/tests/test_chess_rules.gd
+godot --headless --path yassine-game --script res://features/chess/tests/test_fist_choice.gd
 godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_integration.gd
 godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_inventory.gd
 ```

@@ -15,6 +15,11 @@ extends Resource
 @export var board_frame: Texture2D
 @export var sealed_envelope: Texture2D
 @export var back_arrow: Texture2D
+@export_group("Fist choice artwork")
+@export var left_fist_closed: Texture2D
+@export var right_fist_closed: Texture2D
+@export var left_fist_opened: Texture2D
+@export var right_fist_opened: Texture2D
 @export_group("Typography")
 @export var interface_font: Font = preload("res://ttf/JetBrainsMono-Regular.ttf")
 @export_group("Chess pieces")

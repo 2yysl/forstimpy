@@ -48,6 +48,8 @@ func win(a) -> void:
 func _run() -> void:
 	var a = load("res://features/chess/ChessActivity.tscn").instantiate()
 	root.add_child(a)
+	# Start a known match fixture; real entry colour choice has its own suite.
+	a.restart(1)
 	a.bot.behavior = a.bot.behavior.duplicate()
 	a.bot.behavior.think_delay_seconds = 0.4
 	check(a.undo.disabled and a.takeback.disabled and not a.resign.disabled, "Fresh game: review/takeback unavailable, resign available")

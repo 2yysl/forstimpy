@@ -3,12 +3,15 @@ signal leave_requested
 const Rules = preload("res://features/chess/chess_rules.gd")
 const Bot = preload("res://features/chess/chess_bot.gd")
 const History = preload("res://features/chess/chess_history.gd")
+const COLOUR_REVEAL_SECONDS := 1.2
 @export var visual_theme: Resource = preload("res://features/chess/chess_visual_theme.tres")
 @export var idle_dialogue := "hey bro, your move. no rush."
 @export var thinking_dialogue := "hmm… let me think."
 var game = Rules.new()
 var bot: Node
-var human_color := 1
+var human_color := 0
+var choosing_colour := true
+var fist_choice
 var selected := -1
 var legal: Array = []
 var promotion_moves: Array = []
@@ -66,11 +69,10 @@ func _ready() -> void:
 	undo = $Inventory/Contents/Buttons/Undo
 	takeback = $Inventory/Contents/Buttons/Takeback
 	resign = $Inventory/Contents/Buttons/Resign
+	fist_choice = $FistChoice
+	fist_choice.colour_chosen.connect(_on_colour_chosen)
 	rps_rng.randomize()
 	promotion_row = $Promotion/Options
-	$TopStrip/Controls/Colors/PlayWhite.pressed.connect(func(): restart(1))
-	$TopStrip/Controls/Colors/PlayBlack.pressed.connect(func(): restart(-1))
-	$TopStrip/Controls/Actions/Restart.pressed.connect(func(): restart(human_color))
 	undo.pressed.connect(_toggle_review)
 	takeback.pressed.connect(_request_takeback)
 	resign.pressed.connect(_resign)
@@ -81,7 +83,7 @@ func _ready() -> void:
 	for kind in [Rules.QUEEN, Rules.ROOK, Rules.BISHOP, Rules.KNIGHT]:
 		promotion_row.get_node({5: "Queen", 4: "Rook", 3: "Bishop", 2: "Knight"}[kind]).pressed.connect(_promote.bind(kind))
 	_apply_artwork()
-	for label in [status, details, $EnvelopeCaption, $TopStrip/Atmosphere, $Inventory/Contents/Title,
+	for label in [status, details, $EnvelopeCaption, $TopStrip/Atmosphere, $TopStrip/Controls/Assignment, $Inventory/Contents/Title,
 		$RPS/Dialog/Contents/Title, $RPS/Dialog/Contents/Description, $RPS/Dialog/Contents/Result]:
 		label.add_theme_color_override("font_color", visual_theme.ink_color)
 	status.add_theme_font_size_override("font_size", 22)
@@ -89,7 +91,8 @@ func _ready() -> void:
 	$TopStrip/Atmosphere.add_theme_font_size_override("font_size", 14)
 	$EnvelopeCaption.add_theme_font_size_override("font_size", 14)
 	$Inventory/Contents/Title.add_theme_font_size_override("font_size", 12)
-	for button in [back, undo, takeback, resign, $RPS/Dialog/Contents/Close, $TopStrip/Controls/Colors/PlayWhite, $TopStrip/Controls/Colors/PlayBlack, $TopStrip/Controls/Actions/Restart] + promotion_row.get_children() + $RPS/Dialog/Contents/Choices.get_children():
+	$TopStrip/Controls/Assignment.add_theme_font_size_override("font_size", 14)
+	for button in [back, undo, takeback, resign, $RPS/Dialog/Contents/Close] + promotion_row.get_children() + $RPS/Dialog/Contents/Choices.get_children():
 		_style_button(button)
 	var promotion_style := StyleBoxFlat.new()
 	promotion_style.bg_color = visual_theme.panel_color
@@ -113,7 +116,7 @@ func _ready() -> void:
 	resized.connect(_layout)
 	get_viewport().size_changed.connect(_fit_window)
 	_fit_window()
-	restart(human_color)
+	restart(0)
 
 func _fit_window() -> void:
 	# The original project stretches a 1280-wide canvas. Use actual window
@@ -132,6 +135,8 @@ func _apply_artwork() -> void:
 	board_frame.texture = visual_theme.board_frame
 	envelope.texture = visual_theme.sealed_envelope
 	$Back/Arrow.texture = visual_theme.back_arrow
+	fist_choice.visual_theme = visual_theme
+	fist_choice.apply_artwork()
 
 func _style_button(button: Button) -> void:
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -201,6 +206,7 @@ func _layout() -> void:
 	_place(status, Rect2(24, 18, dialogue_bubble.size.x - 48, dialogue_bubble.size.y - 26))
 	_place($Back/Arrow, Rect2(0, 5, 76, 36))
 	_place(board_frame, board_rect.grow(14))
+	_place(fist_choice, board_rect)
 	_place($Promotion, Rect2(board_rect.position.x, board_rect.get_center().y - 24, board_rect.size.x, 48))
 	_place($RPS, Rect2(Vector2.ZERO, size))
 	_layout_rps()
@@ -214,6 +220,7 @@ func restart(color: int) -> void:
 	session += 1
 	bot.cancel()
 	human_color = color
+	choosing_colour = color == 0
 	game = Rules.new()
 	selected = -1
 	promotion_moves.clear()
@@ -226,9 +233,23 @@ func restart(color: int) -> void:
 	rps_resolved = false
 	rps_target = -1
 	$RPS.hide()
+	if choosing_colour:
+		fist_choice.begin_choice()
+	else:
+		fist_choice.hide()
 	_refresh()
-	if game.turn != human_color:
+	if not choosing_colour and game.turn != human_color:
 		_bot_turn()
+
+func _on_colour_chosen(colour: int) -> void:
+	if not choosing_colour:
+		return
+	human_color = colour
+	_refresh()
+	var token := session
+	await get_tree().create_timer(COLOUR_REVEAL_SECONDS).timeout
+	if token == session and is_inside_tree():
+		restart(colour)
 
 func leave_match() -> void:
 	session += 1
@@ -248,12 +269,12 @@ func _refresh() -> void:
 	status.text = ended if not ended.is_empty() else (thinking_dialogue if thinking else ("Careful — your king is in check!" if game.in_check(game.turn) else idle_dialogue))
 	details.text = "with " + bot.behavior.display_name + "\nYou: " + ("White" if human_color == 1 else "Black") + "\n" + bot.behavior.target_rating_label
 	portrait.texture = visual_theme.portrait_thinking if thinking else visual_theme.portrait_idle
-	$TopStrip/Controls/Colors/PlayWhite.set_pressed_no_signal(human_color == 1)
-	$TopStrip/Controls/Colors/PlayBlack.set_pressed_no_signal(human_color == -1)
+	$TopStrip/Controls/Assignment.text = "White or Black?" if human_color == 0 else ("You: White\n" + bot.behavior.display_name + ": Black" if human_color == 1 else "You: Black\n" + bot.behavior.display_name + ": White")
+	board_frame.visible = not choosing_colour
 	undo.disabled = history.entries.is_empty() or not promotion_moves.is_empty() or rps_active
 	undo.set_pressed_no_signal(review_index >= 0)
 	takeback.disabled = not ended.is_empty() or not promotion_moves.is_empty() or rps_active or history.challenge_index() < 0
-	resign.disabled = not ended.is_empty() or rps_active
+	resign.disabled = choosing_colour or not ended.is_empty() or rps_active
 	$Inventory/Contents/Title.text = "inventory · preview only" if review_index >= 0 else "inventory"
 	promotion_row.visible = not promotion_moves.is_empty() and review_index < 0 and not rps_active
 	$Promotion.visible = promotion_row.visible
@@ -262,10 +283,13 @@ func _refresh() -> void:
 	if review_index >= 0:
 		var entry: Dictionary = history.entries[review_index]
 		status.text = ("White" if entry.before.position.turn == 1 else "Black") + " " + Rules.square_name(entry.move.from) + " → " + Rules.square_name(entry.move.to) + " · preview"
+	if choosing_colour:
+		status.text = "choose a fist." if human_color == 0 else ("White queen — you play White." if human_color == 1 else "Black queen — you play Black.")
+		details.text = "with " + bot.behavior.display_name + "\n" + ("Your colour is hidden" if human_color == 0 else ("You: White" if human_color == 1 else "You: Black"))
 	queue_redraw()
 
 func _bot_turn() -> void:
-	if not ended.is_empty():
+	if choosing_colour or not ended.is_empty():
 		return
 	if game.can_claim_draw():
 		ended = "Draw claimed by " + bot.behavior.display_name
@@ -293,7 +317,7 @@ func _toggle_review() -> void:
 	_refresh()
 
 func _resign() -> void:
-	if not ended.is_empty() or rps_active:
+	if choosing_colour or not ended.is_empty() or rps_active:
 		return
 	session += 1
 	bot.cancel()
@@ -305,7 +329,7 @@ func _resign() -> void:
 	_refresh()
 
 func _request_takeback() -> void:
-	if not ended.is_empty() or not promotion_moves.is_empty() or rps_active:
+	if choosing_colour or not ended.is_empty() or not promotion_moves.is_empty() or rps_active:
 		return
 	rps_target = history.challenge_index()
 	if rps_target < 0:
@@ -374,7 +398,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 func select_square(index: int) -> void:
-	if thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty() or review_index >= 0 or rps_active:
+	if choosing_colour or thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty() or review_index >= 0 or rps_active:
 		return
 	var candidates := legal.filter(func(move): return move.from == selected and move.to == index)
 	if not candidates.is_empty():
@@ -417,7 +441,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), visual_theme.panel_color)
-	if board_rect.size.x <= 0:
+	if choosing_colour or board_rect.size.x <= 0:
 		return
 	var cell := board_rect.size.x / 8.0
 	var font: Font = scene_font if scene_font else ThemeDB.fallback_font
