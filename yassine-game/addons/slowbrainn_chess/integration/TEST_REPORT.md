@@ -2,6 +2,18 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 15 invitation update
+
+Removed the “Not now” button and its decline state at the user's request. The invitation now contains only “sure” and “yes but red”; the board hotspot still opens chess, and leaving a match restores the invitation. The README and affected tests reflect this behavior.
+
+- Rendered Godot integration: **31/31 passed**, exit 0, including absence of the third choice, both affirmative responses, board entry and restored invitation after leaving.
+- Fresh temporary Web export: passed, exit 0, without import/export errors.
+- Chromium browser regression: **17/17 passed**, exit 0, including a screenshot check that the removed button's former location shows the table. The invitation screenshot was also inspected visually.
+- Browser logs and screenshots: `/tmp/forstimpy-invitation-srnqaj2g/`; native results are recorded in the execution transcript.
+- Chess rules were unchanged; the rules-only suite was not repeated for this UI change.
+
+The remaining sections record the original November 14 implementation and its results, including the decline flow that existed at that time.
+
 ## Git baseline and scope
 
 - Fresh local clone: `/home/anson/Projects/forstimpy`.

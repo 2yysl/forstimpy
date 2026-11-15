@@ -44,12 +44,11 @@ const assert = require('node:assert/strict');
     await page.waitForTimeout(1200);
     await shot('01-title');
     await click(640, 590, 2300);
-    await shot('02-character');
-    await click(645, 670);
-    await shot('03-declined');
-    await click(640, 530, 500);
+    const invitation = await shot('02-character');
+    check(pixel(invitation, 645, 670).join() === '187,128,94', 'Invitation has no Not now button');
+    await click(430, 670, 500);
     const initial = await shot('04-start');
-    check(occupied(initial, 6, 4) && !occupied(initial, 4, 4), 'Decline then board hotspot opens starting position');
+    check(occupied(initial, 6, 4) && !occupied(initial, 4, 4), 'Sure opens starting position');
     await click(384, 552);
     const selected = await shot('05-selected');
     check(occupied(selected, 4, 4), 'Legal e4 destination highlights after selecting e2');
@@ -87,7 +86,7 @@ const assert = require('node:assert/strict');
     await shot('12-reentry');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
-    // Declining stays dismissed, so use a fresh page to test affirmative choices.
+    // Start a fresh title flow to exercise both affirmative responses again.
     await page.reload();
     await page.waitForSelector('#status', { state: 'detached', timeout: 30000 });
     await page.waitForTimeout(700);

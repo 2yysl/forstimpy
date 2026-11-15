@@ -19,7 +19,7 @@ godot --path yassine-game res://addons/slowbrainn_chess/demo/ChessCharacterTest.
 
 The original project's default entry scene is unchanged. Use the explicit alternate scene above, or open it in the Godot editor and press F6.
 
-Accept either invitation response to play. “Not now” dismisses the invitation; the board hotspot can start chess later. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. Play White/Play Black starts a new match in the selected color. Restart resets the current color. Leave match or Escape returns to the character.
+Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. Select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. Play White/Play Black starts a new match in the selected color. Restart resets the current color. Leave match or Escape returns to the character and restores the invitation.
 
 ## Browser export
 

@@ -3,13 +3,9 @@ extends "res://scripts/ui/table_scene.gd"
 const Activity = preload("res://addons/slowbrainn_chess/ChessActivity.tscn")
 var match_layer: CanvasLayer
 var activity: Control
-var declined := false
 
 func _ready() -> void:
 	super._ready()
-	var decline := _button(choices, "Not now", Vector2(558, 644), Vector2(180, 52), INK)
-	decline.name = "NotNow"
-	decline.pressed.connect(_decline)
 	match_layer = CanvasLayer.new()
 	match_layer.name = "ChessLayer"
 	match_layer.layer = 20
@@ -30,14 +26,6 @@ func _answer(joke: bool) -> void:
 func _open_board() -> void:
 	_answer(false)
 
-func _decline() -> void:
-	if changing_view or is_instance_valid(activity):
-		return
-	declined = true
-	choices.hide()
-	dialogue.hide()
-	board_button.disabled = false
-
 func _open_match() -> void:
 	if is_instance_valid(activity):
 		return
@@ -56,8 +44,7 @@ func _close_match() -> void:
 	ui.show()
 	changing_view = false
 	board_button.disabled = false
-	if not declined:
-		_show_invitation()
+	_show_invitation()
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if is_instance_valid(activity) and event.is_action_pressed("ui_cancel"):

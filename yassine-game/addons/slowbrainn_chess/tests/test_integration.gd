@@ -45,15 +45,14 @@ func _run() -> void:
 	var stage = main._stage
 	check(main.state == main.FlowState.STAGE and stage.invitation_ready, "Pan enters character invitation")
 	check(stage.choices.visible, "Invitation choices visible")
-	stage.choices.get_node("NotNow").pressed.emit()
-	check(not stage.choices.visible and not stage.dialogue.visible and not stage.board_button.disabled, "Decline closes invitation and leaves board available")
+	check(not stage.choices.has_node("NotNow") and stage.choices.get_child_count() == 2, "Invitation has only the two affirmative choices")
 	stage.dap_button.pressed.emit()
-	check(stage.dap_count == 1, "Character interaction remains usable after decline")
+	check(stage.dap_count == 1, "Character interaction remains usable during invitation")
 	stage._change_location(2)
 	check(stage.location_index == 2, "Location controls remain usable")
 	stage.board_button.pressed.emit()
 	await process_frame
-	check(is_instance_valid(stage.activity), "Board hotspot opens chess after decline")
+	check(is_instance_valid(stage.activity), "Board hotspot opens chess during invitation")
 	var activity = stage.activity
 	check(activity.game.board.count(0) == 32 and activity.human_color == 1, "White game starts with 32 pieces")
 	activity.select_square(Rules.square("e2"))
@@ -93,8 +92,7 @@ func _run() -> void:
 	check(stage.match_layer.get_child_count() == 1, "Re-entry has exactly one activity")
 	stage.activity.leave_match()
 	await process_frame
-	stage.declined = false
-	stage._show_invitation()
+	check(stage.choices.visible and stage.dialogue.visible, "Leaving chess restores the invitation")
 	stage.choices.get_node("Sure").pressed.emit()
 	await process_frame
 	check(is_instance_valid(stage.activity), "Sure connected callback opens chess")
