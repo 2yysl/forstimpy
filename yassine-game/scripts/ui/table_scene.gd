@@ -5,6 +5,7 @@ const CREAM := Color("#fff2cc")
 const WOOD := Color("#bb805e")
 const BASE := Vector2(1280, 720)
 const LetterScene = preload("res://features/letter/LetterInteraction.tscn")
+const DapScene = preload("res://features/dap/DapInteraction.tscn")
 var overhead := false
 var started := false
 var entrance_done := false
@@ -28,6 +29,7 @@ var board_button: Button
 var back_button: Button
 var view_label: Label
 var letter
+var dap
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -76,6 +78,11 @@ func _ready() -> void:
 	dap_line.name = "DapReaction"
 	dap_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dap_line.hide()
+	dap = DapScene.instantiate()
+	add_child(dap)
+	dap.triggered.connect(_dap_triggered)
+	dap.feedback_finished.connect(_dap_finished)
+	ui.visibility_changed.connect(_table_visibility_changed)
 	board_button = _button(ui, "", Vector2(330, 451), Vector2(600, 175), INK, true)
 	board_button.name = "Board"
 	board_button.tooltip_text = "Play chess"
@@ -92,6 +99,7 @@ func _ready() -> void:
 	letter.name = "Letter"
 	letter.position = Vector2(192, 340)
 	ui.add_child(letter)
+	letter.reading_changed.connect(_letter_reading_changed)
 	resized.connect(_layout)
 	_layout()
 
@@ -171,23 +179,37 @@ func _change_location(index: int) -> void:
 	queue_redraw()
 
 func _dap() -> void:
-	if dap_busy or not entrance_done or changing_view or _letter_is_reading():
+	if not entrance_done or changing_view or overhead or not ui.is_visible_in_tree() or _letter_is_reading():
 		return
+	dap.trigger()
+
+func _dap_triggered(_outcome: int, comment: String) -> void:
 	dap_busy = true
 	dap_count += 1
-	var reactions := ["dude nice dap", "we suck at dapping", "are we goated?"]
-	dap_line.text = reactions[(dap_count - 1) % reactions.size()]
+	dap_line.text = comment
 	dap_line.show()
 	queue_redraw()
-	await get_tree().create_timer(2.0).timeout
+
+func _dap_finished() -> void:
 	dap_busy = false
 	dap_line.hide()
 	queue_redraw()
+
+func _table_visibility_changed() -> void:
+	if not ui.is_visible_in_tree():
+		dap.stop()
+		hand_hover = false
+		queue_redraw()
+
+func _letter_reading_changed(reading: bool) -> void:
+	if reading:
+		dap.stop()
 
 func _answer(joke: bool) -> void:
 	if changing_view or not invitation_ready or _letter_is_reading():
 		return
 	changing_view = true
+	dap.stop()
 	letter.set_enabled(false)
 	choices.hide()
 	board_button.disabled = true

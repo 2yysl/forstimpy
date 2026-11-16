@@ -10,6 +10,8 @@ When entering chess, choose one of the two closed fists. The selected hand opens
 
 On the table scene, hover over the letter beside the dap interaction to open it and hear the existing paper-crumple clip. Click the exposed note to read the original birthday note. Back or Escape returns to the same table. The letter stays open while moving between its envelope and note, and closes when the cursor leaves.
 
+Select the character's hand to dap. Each press independently draws bad/mid/mid2/goat at 20%/35%/35%/10% and shows a matching random comment. Repeated presses immediately replace the reaction and restart its two-second window. Audio uses one voice; inputs arriving in the same engine frame start only the latest selected clip. See `yassine-game/features/dap/README.md` for audio replacement and testing.
+
 ```bash
 godot --editor --path yassine-game
 # Or launch the complete game directly:
@@ -23,6 +25,7 @@ godot --path yassine-game
 | `yassine-game/` | The only active Godot project |
 | `yassine-game/features/chess/` | Chess rules, bot, scene, inventory, related artwork and tests |
 | `yassine-game/features/letter/` | Table letter interaction, audio, full-note reader and canonical note text |
+| `yassine-game/features/dap/` | Weighted dap outcomes, replaceable audio, feedback timing and tests |
 | `yassine-game/scenes/`, `scripts/`, `assets/` | Shared game scenes, scripts and assets |
 | `yassine-game/addons/` | Third-party plugins |
 | `builds/` | Generated exports and verification evidence; ignored by Git |
@@ -37,11 +40,12 @@ The chess demo and tests are developer tools inside this project. They are not a
 | `main` | Original published game; merges require the user's explicit instruction |
 | `chess-character-implementation` | Chess with fixed difficulty, before inventory |
 | `undo-user-inventory` | Saved game with inventory and consolidated organization |
-| `fist-colour-selection` | Current working game with fist colour assignment and the table letter |
+| `fist-colour-selection` | Current working game with fist colour assignment, table letter and weighted daps |
 | `checkpoint-before-inventory` | Saved commit immediately before inventory work |
 | `checkpoint-before-organization` | Saved inventory commit before this reorganization |
 | `checkpoint-before-fist-selection` | Saved consolidated inventory game before fist selection |
 | `checkpoint-before-letter-interaction` | Saved fist-selection game before the interactive table letter |
+| `checkpoint-before-dap-interaction` | Saved letter-enabled game before weighted dap/audio work |
 
 Branches and checkpoint tags preserve versions in Git. Switching branches updates the same local folder; older versions retain their historical internal layout. Save and commit work, close Godot, switch the branch, then reopen the same `project.godot`.
 

@@ -15,6 +15,7 @@ func _answer(joke: bool) -> void:
 	if changing_view or not invitation_ready or is_instance_valid(activity) or _letter_is_reading():
 		return
 	changing_view = true
+	dap.stop()
 	letter.set_enabled(false)
 	choices.hide()
 	board_button.disabled = true

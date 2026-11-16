@@ -17,7 +17,7 @@ The letter beside the table's dap interaction opens on hover, plays `res://asset
 
 The original root `birthday note` file was moved to `content/birthday_note.txt`, without editing its 1386 bytes. Original SHA-256: `3639dc4c6bb6de754e79bc130505312675d564a2f1b0c05fe0f6cf4fbd837e82`. This is now the canonical text asset. The reader uses a plain Label, preserving the wording and explicit line breaks while adding visual word wrapping. The Web export preset's include filter packages `features/letter/content/*.txt`; retain this filter in future export presets.
 
-`default_bus_layout.tres` provides Master and SFX buses. The letter uses one `AudioStreamPlayer`, defaults to -6 dB, and exposes the sound as a generic AudioStream so clips can be replaced without scripting. There is no new audio plugin, global manager, per-frame hover polling or dynamically allocated sound player. Dap outcome/audio behaviour was not changed; it is only blocked while reading.
+`default_bus_layout.tres` provides Master and SFX buses. The letter uses one `AudioStreamPlayer`, defaults to -6 dB, and exposes the sound as a generic AudioStream so clips can be replaced without scripting. There is no new audio plugin, global manager, per-frame hover polling or dynamically allocated sound player. The separate dap component also uses SFX; opening the full note cancels any current dap, and dap input is blocked while reading. See `../dap/README.md`.
 
 ## Verification — November 16, 2026
 
