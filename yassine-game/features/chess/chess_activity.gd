@@ -16,6 +16,9 @@ var selected := -1
 var legal: Array = []
 var promotion_moves: Array = []
 var thinking := false
+var suspended := false
+var pending_bot_rng := 0
+var colour_timer: Timer
 var ended := ""
 var session := 0
 var last_move: Dictionary = {}
@@ -71,6 +74,12 @@ func _ready() -> void:
 	resign = $Inventory/Contents/Buttons/Resign
 	fist_choice = $FistChoice
 	fist_choice.colour_chosen.connect(_on_colour_chosen)
+	colour_timer = Timer.new()
+	colour_timer.name = "ColourRevealTimer"
+	colour_timer.wait_time = COLOUR_REVEAL_SECONDS
+	colour_timer.one_shot = true
+	colour_timer.timeout.connect(_finish_colour_reveal)
+	add_child(colour_timer)
 	rps_rng.randomize()
 	promotion_row = $Promotion/Options
 	undo.pressed.connect(_toggle_review)
@@ -219,6 +228,11 @@ func _layout_rps() -> void:
 func restart(color: int) -> void:
 	session += 1
 	bot.cancel()
+	colour_timer.stop()
+	colour_timer.paused = false
+	suspended = false
+	process_mode = Node.PROCESS_MODE_INHERIT
+	show()
 	human_color = color
 	choosing_colour = color == 0
 	game = Rules.new()
@@ -242,20 +256,46 @@ func restart(color: int) -> void:
 		_bot_turn()
 
 func _on_colour_chosen(colour: int) -> void:
-	if not choosing_colour:
+	if suspended or not choosing_colour or human_color != 0:
 		return
 	human_color = colour
 	_refresh()
-	var token := session
-	await get_tree().create_timer(COLOUR_REVEAL_SECONDS).timeout
-	if token == session and is_inside_tree():
-		restart(colour)
+	colour_timer.start()
+
+func _finish_colour_reveal() -> void:
+	if not suspended and choosing_colour and human_color != 0:
+		restart(human_color)
 
 func leave_match() -> void:
+	if suspended:
+		return
+	suspend_match()
+	leave_requested.emit()
+
+func suspend_match() -> void:
+	if suspended:
+		return
+	if thinking:
+		bot.rng.state = pending_bot_rng
 	session += 1
 	bot.cancel()
 	thinking = false
-	leave_requested.emit()
+	suspended = true
+	colour_timer.paused = true
+	process_mode = Node.PROCESS_MODE_DISABLED
+	hide()
+
+func resume_match() -> void:
+	if not suspended:
+		return
+	suspended = false
+	process_mode = Node.PROCESS_MODE_INHERIT
+	colour_timer.paused = false
+	show()
+	_fit_window()
+	_refresh()
+	if not choosing_colour and ended.is_empty() and not rps_active and promotion_moves.is_empty() and game.turn != human_color:
+		_bot_turn()
 
 func _exit_tree() -> void:
 	session += 1
@@ -289,7 +329,7 @@ func _refresh() -> void:
 	queue_redraw()
 
 func _bot_turn() -> void:
-	if choosing_colour or not ended.is_empty():
+	if suspended or thinking or choosing_colour or not ended.is_empty() or rps_active or not promotion_moves.is_empty() or game.turn == human_color:
 		return
 	if game.can_claim_draw():
 		ended = "Draw claimed by " + bot.behavior.display_name
@@ -298,6 +338,7 @@ func _bot_turn() -> void:
 	thinking = true
 	_refresh()
 	var token := session
+	pending_bot_rng = bot.rng.state
 	var before: Dictionary = history.capture(game, bot.rng.state, last_move)
 	var move: Dictionary = await bot.choose_move(game)
 	if token != session or not is_inside_tree():
@@ -310,14 +351,14 @@ func _bot_turn() -> void:
 	_refresh()
 
 func _toggle_review() -> void:
-	if history.entries.is_empty() or not promotion_moves.is_empty() or rps_active:
+	if suspended or history.entries.is_empty() or not promotion_moves.is_empty() or rps_active:
 		return
 	review_index = history.entries.size() - 1 if review_index < 0 else -1
 	selected = -1
 	_refresh()
 
 func _resign() -> void:
-	if choosing_colour or not ended.is_empty() or rps_active:
+	if suspended or choosing_colour or not ended.is_empty() or rps_active:
 		return
 	session += 1
 	bot.cancel()
@@ -329,7 +370,7 @@ func _resign() -> void:
 	_refresh()
 
 func _request_takeback() -> void:
-	if choosing_colour or not ended.is_empty() or not promotion_moves.is_empty() or rps_active:
+	if suspended or choosing_colour or not ended.is_empty() or not promotion_moves.is_empty() or rps_active:
 		return
 	rps_target = history.challenge_index()
 	if rps_target < 0:
@@ -350,7 +391,7 @@ func _request_takeback() -> void:
 	_refresh()
 
 func _play_rps(hand: int) -> void:
-	if not rps_active or rps_resolved or hand < 0 or hand > 2:
+	if suspended or not rps_active or rps_resolved or hand < 0 or hand > 2:
 		return
 	var names := ["rock", "paper", "scissors"]
 	var result := (hand - rps_choice + 3) % 3
@@ -380,7 +421,7 @@ func _play_rps(hand: int) -> void:
 	_refresh()
 
 func _close_rps() -> void:
-	if not rps_active:
+	if suspended or not rps_active:
 		return
 	rps_active = false
 	$RPS.hide()
@@ -398,7 +439,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 func select_square(index: int) -> void:
-	if choosing_colour or thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty() or review_index >= 0 or rps_active:
+	if suspended or choosing_colour or thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty() or review_index >= 0 or rps_active:
 		return
 	var candidates := legal.filter(func(move): return move.from == selected and move.to == index)
 	if not candidates.is_empty():
@@ -412,6 +453,8 @@ func select_square(index: int) -> void:
 	queue_redraw()
 
 func _promote(kind: int) -> void:
+	if suspended:
+		return
 	for move in promotion_moves:
 		if move.promotion == kind:
 			promotion_moves.clear()
@@ -419,6 +462,8 @@ func _promote(kind: int) -> void:
 			return
 
 func _make_move(move: Dictionary) -> void:
+	if suspended:
+		return
 	var before: Dictionary = history.capture(game, bot.rng.state, last_move)
 	if not game.play(move):
 		return

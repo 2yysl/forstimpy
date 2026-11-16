@@ -39,7 +39,7 @@ func begin_choice() -> void:
 	show()
 
 func choose(hand: int) -> void:
-	if selected_hand >= 0 or not visible or hand < 0 or hand > 1:
+	if selected_hand >= 0 or not is_visible_in_tree() or hand < 0 or hand > 1:
 		return
 	selected_hand = hand
 	var colour := left_colour if hand == 0 else -left_colour

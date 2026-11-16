@@ -12,7 +12,7 @@ func _ready() -> void:
 	add_child(match_layer)
 
 func _answer(joke: bool) -> void:
-	if changing_view or not invitation_ready or is_instance_valid(activity) or _letter_is_reading():
+	if changing_view or not invitation_ready or (is_instance_valid(activity) and not activity.suspended) or _letter_is_reading():
 		return
 	changing_view = true
 	dap.stop()
@@ -29,27 +29,27 @@ func _open_board() -> void:
 	_answer(false)
 
 func _open_match() -> void:
-	if is_instance_valid(activity) or _letter_is_reading():
+	if (is_instance_valid(activity) and not activity.suspended) or _letter_is_reading():
 		return
 	ui.hide()
-	activity = Activity.instantiate()
-	activity.leave_requested.connect(_close_match)
-	match_layer.add_child(activity)
+	if is_instance_valid(activity):
+		activity.resume_match()
+	else:
+		activity = Activity.instantiate()
+		activity.leave_requested.connect(_close_match)
+		match_layer.add_child(activity)
 
 func _close_match() -> void:
 	if not is_instance_valid(activity):
 		return
-	# Remove immediately so re-entry cannot leave overlapping controls/signals.
-	match_layer.remove_child(activity)
-	activity.queue_free()
-	activity = null
+	activity.suspend_match()
 	ui.show()
 	changing_view = false
 	board_button.disabled = false
 	_show_invitation()
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if is_instance_valid(activity) and event.is_action_pressed("ui_cancel"):
+	if is_instance_valid(activity) and not activity.suspended and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		activity.leave_match()
 	else:

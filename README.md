@@ -6,7 +6,7 @@ One local repository contains the complete game and its Git versions. The perman
 
 Open `yassine-game/project.godot` in Godot and press **F5**. On `fist-colour-selection`, the normal game launch includes the original title, character invitation, fist colour choice, yyslChess and the inventory. No alternate project or test scene is needed.
 
-When entering chess, choose one of the two closed fists. The selected hand opens to reveal a White or Black queen, assigning your colour. The board starts automatically after the brief reveal. Manual colour buttons and Restart have been removed. Use Back and enter chess again for a fresh match and choice.
+On first entering chess, choose one of the two closed fists. The selected hand opens to reveal a White or Black queen, assigning your colour. The board starts automatically after the brief reveal. Manual colour buttons and Restart have been removed. Back saves the current match in memory; entering chess again resumes the same board, colour and inventory. This lasts while the application stays open, including finished/resigned games. Close and relaunch the game for a fresh session.
 
 On the table scene, hover over the letter beside the dap interaction to open it and hear the existing paper-crumple clip. Click the exposed note to read the original birthday note. Back or Escape returns to the same table. The letter stays open while moving between its envelope and note, and closes when the cursor leaves.
 
@@ -46,6 +46,7 @@ The chess demo and tests are developer tools inside this project. They are not a
 | `checkpoint-before-fist-selection` | Saved consolidated inventory game before fist selection |
 | `checkpoint-before-letter-interaction` | Saved fist-selection game before the interactive table letter |
 | `checkpoint-before-dap-interaction` | Saved letter-enabled game before weighted dap/audio work |
+| `checkpoint-before-chess-resume` | Saved dap-enabled game before session-only chess resume |
 
 Branches and checkpoint tags preserve versions in Git. Switching branches updates the same local folder; older versions retain their historical internal layout. Save and commit work, close Godot, switch the branch, then reopen the same `project.godot`.
 

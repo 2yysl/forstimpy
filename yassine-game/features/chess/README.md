@@ -21,7 +21,9 @@ Open `yassine-game/project.godot` and press F5 to launch the complete game. The 
 
 Accept either invitation response ("sure" or "yes but red") to play, or use the board hotspot. The character asks **"choose a fist."** Both fists start closed, with one White queen and one Black queen assigned randomly to opposite hands before input. Selecting either hand opens only that hand and shows its queen. The result is locked immediately; after 1.2 seconds the board starts in that colour. White moves first, so yyslChess makes the opening move when you draw Black. The colour shuffle has its own RNG and does not affect opening variation or AI strength.
 
-Manual White/Black buttons and Restart have been removed. Use the back arrow and enter chess again for a fresh match and choice. Back/Escape works during both the choice and reveal; leaving cancels delayed startup. Chess and inventory actions are blocked until the reveal finishes. During play, select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. Escape first closes an open challenge or preview; otherwise it leaves the match and restores the invitation.
+Manual White/Black buttons and Restart have been removed. Back saves the current match in memory and restores the table; entering chess again resumes that same match. Colour, board orientation, rule state, inventory history, previews, promotion choices and RPS commitments are preserved. Leaving during the fist reveal pauses its remaining time. Interrupted bot work is cancelled and restarted once on return, with its opening RNG state preserved. Hidden chess rejects input and cannot advance the board. Finished and resigned games also remain saved. This is session-only: closing the application or reloading the browser starts a fresh session. There is no new Restart control.
+
+During play, select a piece and then a highlighted destination. Promotion offers Queen, Rook, Bishop or Knight. Escape first closes an open challenge or preview; otherwise it suspends the match and restores the invitation. One hidden activity instance is retained by the table adapter; no save file, additional project or global manager is used.
 
 ## Inventory
 
@@ -33,7 +35,7 @@ The bottom inventory contains three placeholder buttons, with named nodes in `Ch
 
 The character commits an independently randomized RPS hand before each choice. Chess input is blocked while the challenge is open, and any pending bot reply is cancelled; closing an unresolved or lost challenge resumes that turn. A successful takeback restores pieces, castling rights, en passant, move counters, repetition history, last-move highlights and the opening RNG state. Replaying the same move therefore preserves the book reply. Only the three most recent before-move snapshots are retained, sufficient for these actions. A fresh match clears inventory history and challenge eligibility.
 
-No inventory currency, persistence or final artwork is introduced. The controls reuse the current theme and stay below or beside the board according to available space.
+No inventory currency, disk persistence or final artwork is introduced. Inventory state stays with the resumable match. The controls reuse the current theme and stay below or beside the board according to available space.
 
 ## Browser export
 
@@ -88,6 +90,7 @@ godot --headless --path yassine-game --script res://features/chess/tests/test_ch
 godot --headless --path yassine-game --script res://features/chess/tests/test_fist_choice.gd
 godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_integration.gd
 godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_inventory.gd
+godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_resume.gd
 ```
 
 The latter two commands need a graphical display. The inventory suite includes viewport bounds checks; Godot's headless display reports 64×64 on this device, so use the rendered command above. It exercises RPS wins/losses/ties, one-attempt limits, read-only review, restoration of special moves and complete match state, pending reply cancellation, Black orientation and resignation. Browser regression uses actual canvas mouse/keyboard input and screenshot checks:

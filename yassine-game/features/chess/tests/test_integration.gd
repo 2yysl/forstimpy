@@ -97,7 +97,7 @@ func _run() -> void:
 	activity.restart(-1)
 	activity.leave_match()
 	await pause(0.6)
-	check(not is_instance_valid(stage.activity) and stage.ui.visible, "Leave cancels bot and restores table")
+	check(is_instance_valid(stage.activity) and stage.activity.suspended and stage.ui.visible, "Leave cancels bot, saves the match and restores table")
 	stage.board_button.pressed.emit()
 	await process_frame
 	check(stage.match_layer.get_child_count() == 1, "Re-entry has exactly one activity")
@@ -114,7 +114,7 @@ func _run() -> void:
 	await pause(2.4)
 	check(is_instance_valid(stage.activity), "Yes but red connected callback opens chess")
 	activity = stage.activity
-	await choose_white(activity)
+	activity.restart(1) # Known fixture for artwork/promotion; returning now resumes.
 	# Texture replacement is independent of the rules and retains aspect ratio.
 	var key: String = activity.game.position_key()
 	var image := Image.create(40, 80, false, Image.FORMAT_RGBA8)
@@ -139,7 +139,7 @@ func _run() -> void:
 	activity._promote(Rules.KNIGHT)
 	check(activity.game.board[0] == Rules.KNIGHT and activity.ended == "Draw by insufficient material", "UI underpromotion and draw work")
 	activity.back.pressed.emit()
-	check(not is_instance_valid(stage.activity) and stage.choices.visible, "Back arrow returns to the character invitation")
+	check(stage.activity == activity and activity.suspended and stage.choices.visible, "Back arrow saves the same match and returns to the character invitation")
 	main.queue_free()
 	await process_frame
 	var demo = load("res://features/chess/demo/ChessCharacterTest.tscn").instantiate()
