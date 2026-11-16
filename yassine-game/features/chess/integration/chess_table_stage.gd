@@ -12,9 +12,10 @@ func _ready() -> void:
 	add_child(match_layer)
 
 func _answer(joke: bool) -> void:
-	if changing_view or not invitation_ready or is_instance_valid(activity):
+	if changing_view or not invitation_ready or is_instance_valid(activity) or _letter_is_reading():
 		return
 	changing_view = true
+	letter.set_enabled(false)
 	choices.hide()
 	board_button.disabled = true
 	if joke:
@@ -27,7 +28,7 @@ func _open_board() -> void:
 	_answer(false)
 
 func _open_match() -> void:
-	if is_instance_valid(activity):
+	if is_instance_valid(activity) or _letter_is_reading():
 		return
 	ui.hide()
 	activity = Activity.instantiate()

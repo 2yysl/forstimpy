@@ -8,6 +8,8 @@ Open `yassine-game/project.godot` in Godot and press **F5**. On `fist-colour-sel
 
 When entering chess, choose one of the two closed fists. The selected hand opens to reveal a White or Black queen, assigning your colour. The board starts automatically after the brief reveal. Manual colour buttons and Restart have been removed. Use Back and enter chess again for a fresh match and choice.
 
+On the table scene, hover over the letter beside the dap interaction to open it and hear the existing paper-crumple clip. Click the exposed note to read the original birthday note. Back or Escape returns to the same table. The letter stays open while moving between its envelope and note, and closes when the cursor leaves.
+
 ```bash
 godot --editor --path yassine-game
 # Or launch the complete game directly:
@@ -20,6 +22,7 @@ godot --path yassine-game
 | --- | --- |
 | `yassine-game/` | The only active Godot project |
 | `yassine-game/features/chess/` | Chess rules, bot, scene, inventory, related artwork and tests |
+| `yassine-game/features/letter/` | Table letter interaction, audio, full-note reader and canonical note text |
 | `yassine-game/scenes/`, `scripts/`, `assets/` | Shared game scenes, scripts and assets |
 | `yassine-game/addons/` | Third-party plugins |
 | `builds/` | Generated exports and verification evidence; ignored by Git |
@@ -34,10 +37,11 @@ The chess demo and tests are developer tools inside this project. They are not a
 | `main` | Original published game; merges require the user's explicit instruction |
 | `chess-character-implementation` | Chess with fixed difficulty, before inventory |
 | `undo-user-inventory` | Saved game with inventory and consolidated organization |
-| `fist-colour-selection` | Current working game with fist-based colour assignment |
+| `fist-colour-selection` | Current working game with fist colour assignment and the table letter |
 | `checkpoint-before-inventory` | Saved commit immediately before inventory work |
 | `checkpoint-before-organization` | Saved inventory commit before this reorganization |
 | `checkpoint-before-fist-selection` | Saved consolidated inventory game before fist selection |
+| `checkpoint-before-letter-interaction` | Saved fist-selection game before the interactive table letter |
 
 Branches and checkpoint tags preserve versions in Git. Switching branches updates the same local folder; older versions retain their historical internal layout. Save and commit work, close Godot, switch the branch, then reopen the same `project.godot`.
 
@@ -58,6 +62,10 @@ python -m http.server 8765 --bind 127.0.0.1 --directory builds/web
 ```
 
 The helper exports the configured game entry point through a temporary import copy, then removes that temporary copy. It refuses a nonempty output directory or a destination inside the Godot project. For another build, choose a new empty directory under `builds/` or remove an obsolete generated build first.
+
+## Letter content and settings
+
+The original root `birthday note` file now lives at `yassine-game/features/letter/content/birthday_note.txt`, with its contents unchanged. This is the single editable note asset, and the Web preset includes it explicitly. See `yassine-game/features/letter/README.md` for artwork/audio replacement, verification and current local evidence.
 
 ## Local archives
 

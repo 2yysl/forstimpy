@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://features/letter/note_reader.gd" id="1"]
+
+[node name="NoteReader" type="CanvasLayer"]
+layer = 30
+visible = false
+script = ExtResource("1")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 0
+mouse_filter = 0
+
+[node name="Shade" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.08, 0.12, 0.12, 0.7)
+
+[node name="Paper" type="PanelContainer" parent="Root"]
+layout_mode = 0
+
+[node name="Contents" type="VBoxContainer" parent="Root/Paper"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Root/Paper/Contents"]
+layout_mode = 2
+mouse_filter = 2
+text = "for you"
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Paper/Contents"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Text" type="Label" parent="Root/Paper/Contents/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+autowrap_mode = 3
+
+[node name="Back" type="Button" parent="Root/Paper/Contents"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Back"
+mouse_default_cursor_shape = 2

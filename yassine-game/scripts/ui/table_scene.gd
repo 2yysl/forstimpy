@@ -4,6 +4,7 @@ const INK := Color("#243333")
 const CREAM := Color("#fff2cc")
 const WOOD := Color("#bb805e")
 const BASE := Vector2(1280, 720)
+const LetterScene = preload("res://features/letter/LetterInteraction.tscn")
 var overhead := false
 var started := false
 var entrance_done := false
@@ -26,6 +27,7 @@ var dap_line: Label
 var board_button: Button
 var back_button: Button
 var view_label: Label
+var letter
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -86,7 +88,10 @@ func _ready() -> void:
 	view_label = _label(ui, "chess board placeholder", Vector2(470, 668), Vector2(370, 30), 18)
 	view_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	view_label.hide()
-	_label(ui, "for you", Vector2(216, 446), Vector2(100, 30), 17)
+	letter = LetterScene.instantiate()
+	letter.name = "Letter"
+	letter.position = Vector2(192, 340)
+	ui.add_child(letter)
 	resized.connect(_layout)
 	_layout()
 
@@ -154,13 +159,19 @@ func _show_invitation() -> void:
 	dialogue.show()
 	choices.show()
 	board_button.disabled = false
+	letter.set_enabled(true)
+
+func _letter_is_reading() -> bool:
+	return is_instance_valid(letter) and letter.reading
 
 func _change_location(index: int) -> void:
+	if _letter_is_reading():
+		return
 	location_index = index
 	queue_redraw()
 
 func _dap() -> void:
-	if dap_busy or not entrance_done or changing_view:
+	if dap_busy or not entrance_done or changing_view or _letter_is_reading():
 		return
 	dap_busy = true
 	dap_count += 1
@@ -174,9 +185,10 @@ func _dap() -> void:
 	queue_redraw()
 
 func _answer(joke: bool) -> void:
-	if changing_view or not invitation_ready:
+	if changing_view or not invitation_ready or _letter_is_reading():
 		return
 	changing_view = true
+	letter.set_enabled(false)
 	choices.hide()
 	board_button.disabled = true
 	if joke:
@@ -227,6 +239,7 @@ void fragment() {
 	wipe_material.shader = wipe_shader
 	cover.material = wipe_material
 	overhead = to_overhead
+	letter.visible = not overhead
 	dialogue.hide()
 	choices.hide()
 	dap_line.hide()
@@ -241,6 +254,7 @@ void fragment() {
 	wipe.tween_method(func(value: float): wipe_material.set_shader_parameter("progress", value), 0.0, 1.0, 0.55)
 	await wipe.finished
 	wipe_layer.queue_free()
+	letter.set_enabled(not overhead)
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if overhead and event.is_action_pressed("ui_cancel"):
@@ -319,7 +333,3 @@ func _draw() -> void:
 			draw_arc(Vector2(912, 402), 40, 0.0, TAU, 40, Color("#fff1a1"), 4, true)
 		_line([Vector2(465, 402), Vector2(490, 410), Vector2(507, 400)], INK, 3)
 		_line([Vector2(895, 400), Vector2(922, 410), Vector2(938, 399)], INK, 3)
-	# The letter is intentionally decorative in the main view.
-	_shape([Vector2(200, 418), Vector2(280, 385), Vector2(330, 420), Vector2(246, 456)], Color("#fff0ad"))
-	_line([Vector2(200, 418), Vector2(269, 428), Vector2(280, 385)], Color("#c6a55b"), 3)
-	draw_circle(Vector2(268, 421), 8, Color("#d5384d"))
