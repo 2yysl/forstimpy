@@ -26,7 +26,8 @@ func signature(a) -> Array:
 	return [a.game.board.duplicate(), a.game.turn, a.game.castling, a.game.ep, a.game.halfmove, a.game.fullmove,
 		a.game.repetitions.duplicate(), a.bot.rng.state, a.last_move.duplicate(), a.human_color, a.selected,
 		a.history.entries.duplicate(true), a.history.latest_human_id, a.history.challenged_human_id,
-		a.review_index, a.promotion_moves.duplicate(true), a.rps_active, a.rps_resolved, a.rps_target, a.rps_choice, a.ended]
+		a.review_index, a.promotion_moves.duplicate(true), a.rps_active, a.rps_resolved, a.rps_target, a.rps_choice, a.ended,
+		a.captured_by_white.duplicate(), a.captured_by_black.duplicate()]
 
 func run() -> void:
 	var main = load(ProjectSettings.get_setting("application/run/main_scene")).instantiate()

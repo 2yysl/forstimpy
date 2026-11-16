@@ -37,6 +37,14 @@ The character commits an independently randomized RPS hand before each choice. C
 
 No inventory currency, disk persistence or final artwork is introduced. Inventory state stays with the resumable match. The controls reuse the current theme and stay below or beside the board according to available space.
 
+## Captured pieces
+
+The capturing side keeps each captured opponent piece in capture order. White taking a Black knight puts that Black knight in White's collection. `PlayerCaptures` stays near the player's end of the board, and `CharacterCaptures` stays near the character's end, so their colour ownership follows the chosen orientation. Desktop uses two trays beside the board; portrait uses strips above and below it. Compact windows reduce the header/board layout to keep the trays and inventory separate.
+
+`captured_pieces.gd` draws the existing theme's piece textures inside simple placeholder trays, without creating an icon node for each capture. Replace piece artwork through `chess_visual_theme.tres`; change the named tray nodes/script for later table art. Both trays are hidden during fist selection. Each side can collect at most the opponent's 15 non-king pieces, including promoted pieces at their captured identity.
+
+The activity records captures only after a successful committed move, through one shared human/bot path. It handles en passant, capture-promotion and later captures of promoted pieces. Quiet promotion and castling do not create captures. Capture lists remain outside the rules/search position, avoiding extra history copies during AI search. Three bounded inventory snapshots include copies of both lists for previews and takebacks. Back/resume retains the complete collections even when their original captures have fallen out of the three-snapshot window.
+
 ## Browser export
 
 Export templates matching the installed Godot version are required. This helper copies source into a temporary project, imports resources, exports the configured game entry scene, and uses the single-threaded Web preset. The temporary project is removed afterward. It refuses a nonempty output directory or a destination inside `yassine-game`. Use `--scene` only to export a test scene.
@@ -91,6 +99,7 @@ godot --headless --path yassine-game --script res://features/chess/tests/test_fi
 godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_integration.gd
 godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_inventory.gd
 godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_resume.gd
+godot --path yassine-game --resolution 1280x720 --script res://features/chess/tests/test_captured_pieces.gd
 ```
 
 The latter two commands need a graphical display. The inventory suite includes viewport bounds checks; Godot's headless display reports 64×64 on this device, so use the rendered command above. It exercises RPS wins/losses/ties, one-attempt limits, read-only review, restoration of special moves and complete match state, pending reply cancellation, Black orientation and resignation. Browser regression uses actual canvas mouse/keyboard input and screenshot checks:

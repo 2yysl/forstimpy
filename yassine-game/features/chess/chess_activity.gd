@@ -22,6 +22,8 @@ var colour_timer: Timer
 var ended := ""
 var session := 0
 var last_move: Dictionary = {}
+var captured_by_white: Array[int] = []
+var captured_by_black: Array[int] = []
 var board_rect := Rect2()
 var panel: VBoxContainer
 var status: Label
@@ -146,6 +148,7 @@ func _apply_artwork() -> void:
 	$Back/Arrow.texture = visual_theme.back_arrow
 	fist_choice.visual_theme = visual_theme
 	fist_choice.apply_artwork()
+	_refresh_captures()
 
 func _style_button(button: Button) -> void:
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -173,19 +176,22 @@ func _layout() -> void:
 	var narrow := size.x < 760
 	status.add_theme_font_size_override("font_size", 18 if narrow else 22)
 	if narrow:
-		_place(header, Rect2(16, 16, size.x - 32, 148))
+		var compact := size.y < 700
+		_place(header, Rect2(16, 16, size.x - 32, 108 if compact else 148))
 		_place($TopStrip/TimeMusic, Rect2(10, 10, 48, 24))
-		_place(portrait, Rect2(56, 6, header.size.x * 0.46, 66))
-		_place($TopStrip/Memories, Rect2(header.size.x * 0.64, 8, header.size.x * 0.33, 64))
-		_place(panel, Rect2(12, 80, header.size.x - 24, 62))
-		_place(dialogue_bubble, Rect2(82, 176, size.x - 98, 76))
-		_place(envelope, Rect2(14, 186, 60, 48))
-		_place($EnvelopeCaption, Rect2(14, 235, 60, 20))
-		var extent := maxf(80, minf(size.x - 48, size.y - 444))
-		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 280), Vector2.ONE * extent)
-		_place(details, Rect2(24, board_rect.end.y + 24, size.x - 48, 54))
+		_place(portrait, Rect2(56, 6, header.size.x * 0.46, 40 if compact else 66))
+		_place($TopStrip/Memories, Rect2(header.size.x * 0.64, 8, header.size.x * 0.33, 38 if compact else 64))
+		_place(panel, Rect2(12, 48 if compact else 80, header.size.x - 24, 54 if compact else 62))
+		_place(dialogue_bubble, Rect2(82, 136 if compact else 176, size.x - 98, 52 if compact else 76))
+		_place(envelope, Rect2(14, 144 if compact else 186, 60, 36 if compact else 48))
+		_place($EnvelopeCaption, Rect2(14, 180 if compact else 235, 60, 18 if compact else 20))
+		var extent := maxf(80, minf(size.x - 48, size.y - (456 if compact else 552)))
+		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 250 if compact else 326), Vector2.ONE * extent)
+		_place($CharacterCaptures, Rect2(24, 200 if compact else 266, size.x - 48, 36 if compact else 44))
+		_place($PlayerCaptures, Rect2(24, board_rect.end.y + (22 if compact else 24), size.x - 48, 36 if compact else 44))
+		_place(details, Rect2(24, $PlayerCaptures.get_rect().end.y + 8, size.x - 48, 54))
 		details.add_theme_font_size_override("font_size", 12)
-		details.visible = size.y >= 820
+		details.visible = details.get_rect().end.y <= size.y - 148
 		_place(inventory, Rect2(16, size.y - 140, size.x - 32, 68))
 		_place(back, Rect2(24, size.y - 62, 124, 44))
 	else:
@@ -203,6 +209,9 @@ func _layout() -> void:
 		if not side_inventory:
 			extent = maxf(80, minf(extent, size.y - 366))
 		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 252), Vector2.ONE * extent)
+		var tray_width := minf(188, board_rect.position.x - 56)
+		_place($CharacterCaptures, Rect2(board_rect.position.x - tray_width - 28, board_rect.position.y + 28, tray_width, 100))
+		_place($PlayerCaptures, Rect2(board_rect.position.x - tray_width - 28, board_rect.end.y - 112, tray_width, 100))
 		_place(details, Rect2(board_rect.end.x + 30, 278, maxf(120, size.x - board_rect.end.x - 62), 96))
 		details.show()
 		details.add_theme_font_size_override("font_size", 14)
@@ -239,6 +248,8 @@ func restart(color: int) -> void:
 	selected = -1
 	promotion_moves.clear()
 	last_move = {}
+	captured_by_white.clear()
+	captured_by_black.clear()
 	ended = ""
 	thinking = false
 	history.clear()
@@ -311,6 +322,7 @@ func _refresh() -> void:
 	portrait.texture = visual_theme.portrait_thinking if thinking else visual_theme.portrait_idle
 	$TopStrip/Controls/Assignment.text = "White or Black?" if human_color == 0 else ("You: White\n" + bot.behavior.display_name + ": Black" if human_color == 1 else "You: Black\n" + bot.behavior.display_name + ": White")
 	board_frame.visible = not choosing_colour
+	_refresh_captures()
 	undo.disabled = history.entries.is_empty() or not promotion_moves.is_empty() or rps_active
 	undo.set_pressed_no_signal(review_index >= 0)
 	takeback.disabled = not ended.is_empty() or not promotion_moves.is_empty() or rps_active or history.challenge_index() < 0
@@ -339,15 +351,13 @@ func _bot_turn() -> void:
 	_refresh()
 	var token := session
 	pending_bot_rng = bot.rng.state
-	var before: Dictionary = history.capture(game, bot.rng.state, last_move)
+	var before := _capture_snapshot()
 	var move: Dictionary = await bot.choose_move(game)
 	if token != session or not is_inside_tree():
 		return
 	thinking = false
-	if not move.is_empty() and game.play(move):
-		if history.record(before, move, human_color) and review_index >= 0:
-			review_index -= 1
-		last_move = move
+	if not move.is_empty():
+		_commit_move(move, before)
 	_refresh()
 
 func _toggle_review() -> void:
@@ -411,6 +421,8 @@ func _play_rps(hand: int) -> void:
 		game = restored.position
 		bot.rng.state = restored.rng_state
 		last_move = restored.last_move
+		captured_by_white.assign(restored.captured_white)
+		captured_by_black.assign(restored.captured_black)
 		review_index = -1
 		promotion_moves.clear()
 		ended = ""
@@ -464,15 +476,47 @@ func _promote(kind: int) -> void:
 func _make_move(move: Dictionary) -> void:
 	if suspended:
 		return
-	var before: Dictionary = history.capture(game, bot.rng.state, last_move)
-	if not game.play(move):
+	var before := _capture_snapshot()
+	if not _commit_move(move, before):
 		return
-	history.record(before, move, human_color)
-	last_move = move
 	selected = -1
 	_refresh()
 	if ended.is_empty():
 		_bot_turn()
+
+func _capture_snapshot() -> Dictionary:
+	return history.capture(game, bot.rng.state, last_move, captured_by_white, captured_by_black)
+
+func _commit_move(move: Dictionary, before: Dictionary) -> bool:
+	if suspended:
+		return false
+	# Capture identity must be read before play removes it, including en passant.
+	var mover: int = game.turn
+	var taken: int = game.board[move.to]
+	if absi(game.board[move.from]) == Rules.PAWN and move.to == game.ep and taken == 0:
+		taken = game.board[move.to + mover * 8]
+	if not game.play(move):
+		return false
+	if taken != 0:
+		if mover == 1:
+			captured_by_white.append(taken)
+		else:
+			captured_by_black.append(taken)
+	if history.record(before, move, human_color) and review_index >= 0:
+		review_index -= 1
+	last_move = move
+	return true
+
+func _refresh_captures() -> void:
+	$PlayerCaptures.visible = not choosing_colour
+	$CharacterCaptures.visible = not choosing_colour
+	var white: Array = captured_by_white
+	var black: Array = captured_by_black
+	if review_index >= 0:
+		white = history.entries[review_index].before.captured_white
+		black = history.entries[review_index].before.captured_black
+	$PlayerCaptures.display(white if human_color == 1 else black, visual_theme, "your captures")
+	$CharacterCaptures.display(black if human_color == 1 else white, visual_theme, bot.behavior.display_name + " captures")
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

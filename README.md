@@ -8,6 +8,8 @@ Open `yassine-game/project.godot` in Godot and press **F5**. On `fist-colour-sel
 
 On first entering chess, choose one of the two closed fists. The selected hand opens to reveal a White or Black queen, assigning your colour. The board starts automatically after the brief reveal. Manual colour buttons and Restart have been removed. Back saves the current match in memory; entering chess again resumes the same board, colour and inventory. This lasts while the application stays open, including finished/resigned games. Close and relaunch the game for a fresh session.
 
+Captured pieces appear beside the capturing side: your collection stays near your end of the board and the character's stays near theirs. These use the existing replaceable piece textures. Collections stay with the saved match, show the correct historical pieces during undo previews, and revert when an earned takeback returns pieces to the board.
+
 On the table scene, hover over the letter beside the dap interaction to open it and hear the existing paper-crumple clip. Click the exposed note to read the original birthday note. Back or Escape returns to the same table. The letter stays open while moving between its envelope and note, and closes when the cursor leaves.
 
 Select the character's hand to dap. Each press independently draws bad/mid/mid2/goat at 20%/35%/35%/10% and shows a matching random comment. Repeated presses immediately replace the reaction and restart its two-second window. Audio uses one voice; inputs arriving in the same engine frame start only the latest selected clip. See `yassine-game/features/dap/README.md` for audio replacement and testing.
@@ -40,13 +42,14 @@ The chess demo and tests are developer tools inside this project. They are not a
 | `main` | Original published game; merges require the user's explicit instruction |
 | `chess-character-implementation` | Chess with fixed difficulty, before inventory |
 | `undo-user-inventory` | Saved game with inventory and consolidated organization |
-| `fist-colour-selection` | Current working game with fist colour assignment, table letter and weighted daps |
+| `fist-colour-selection` | Current game with fist colour choice, letter, weighted daps, resumable chess and captured pieces |
 | `checkpoint-before-inventory` | Saved commit immediately before inventory work |
 | `checkpoint-before-organization` | Saved inventory commit before this reorganization |
 | `checkpoint-before-fist-selection` | Saved consolidated inventory game before fist selection |
 | `checkpoint-before-letter-interaction` | Saved fist-selection game before the interactive table letter |
 | `checkpoint-before-dap-interaction` | Saved letter-enabled game before weighted dap/audio work |
 | `checkpoint-before-chess-resume` | Saved dap-enabled game before session-only chess resume |
+| `checkpoint-before-captured-pieces` | Saved resumable chess before captured-piece displays |
 
 Branches and checkpoint tags preserve versions in Git. Switching branches updates the same local folder; older versions retain their historical internal layout. Save and commit work, close Godot, switch the branch, then reopen the same `project.godot`.
 

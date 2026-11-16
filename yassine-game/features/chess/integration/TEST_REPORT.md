@@ -2,6 +2,34 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 16 session resume and captured pieces
+
+Implemented in that order on the existing `fist-colour-selection` branch. `checkpoint-before-chess-resume` preserves the dap-enabled game at `f352c29`; commit `43ef485` implements session resume, and `checkpoint-before-captured-pieces` preserves it before capture work. All work stays in the canonical checkout. Nothing was pushed or merged into main for these changes.
+
+Back now retains one hidden chess activity in memory, with processing and input disabled. The table, letter and dap become available again. Re-entry resumes the same match, preserving colour, board/rule state, inventory, previews, promotion and RPS commitments. Existing cancellation generations reject stale bot work; an interrupted reply restarts once on return with its opening RNG state restored. The fist reveal now uses one pausable Timer and keeps its remaining time and committed result. Finished/resigned games stay saved. The scope is explicitly session-only: closing the app or reloading the browser starts fresh; no Restart button or disk save was added.
+
+Captured pieces are recorded only after committed human/bot moves through one shared path. Two small colour-owned lists retain actual captured identities, including en passant and promoted pieces. They are copied into the existing three bounded inventory snapshots, so previews and earned takebacks display the appropriate collections. The lists are not part of AI search positions. Two placeholder Controls draw theme textures directly, with no icon nodes or polling. Player captures sit near the player's edge; character captures sit near the far edge. Desktop uses side trays, portrait uses strips, and small windows use a compact header/board layout.
+
+| Gate | Result |
+| --- | --- |
+| Native session resume | **33/33 passed** |
+| Native captured pieces | **48/48 passed** |
+| Existing native inventory | **56/56 passed** |
+| Existing headless fist choice | **56/56 passed** |
+| Full rendered game integration | **37/37 passed** |
+| Native letter and dap | **28/28** and **36/36 passed** |
+| Real-input Chromium gameplay/resume | **33/33 passed** |
+| Chromium captured-piece visuals | **8/8 passed** |
+| Chromium letter and dap | **24/24** and **16/16 passed** |
+| Fresh Web exports | Configured game entry and developer-only capture fixture passed |
+| Final Godot import and whitespace check | Passed |
+
+Total: **375 checks**. Native tests cover repeated round trips, pending delay/search cancellation, frozen hidden boards, paused fist reveals, preserved promotions/previews/RPS attempts, both colours, finished games, capture-promotion, en passant for both sides, no capture on quiet promotion/castling, capture history beyond the three snapshots, and correct takeback restoration. Twenty round trips retained one activity and one leave-signal connection. Repeated tray updates created no nodes. The real bot's capture path was exercised. The unchanged rules/search/repertoire did not require rerunning the broader engine-calibration suites.
+
+Browser checks use real canvas mouse/keyboard input for gameplay and resume. A separate developer-only export (`tests/CaptureVisualChecks.tscn`) builds captures through actual committed fixture moves, then allows both colour orientations and full-tray capacity checks; its B/F keys are absent from normal gameplay. Reviewed screenshots at 1280×720, 390×844 and 452×552 confirmed piece ownership and trays separate from the board/inventory. The first small-window layout overlapped a tray with inventory; the final compact layout fixed it. No errors remained in final native/browser/export logs.
+
+Evidence is under ignored `builds/chess-resume/verification/`. The full playable export is `builds/chess-resume/web/`; `capture-fixture/` is a separate generated test export, not another source project. Earlier sections below record historical behaviour, including the former fresh-match-on-re-entry flow.
+
 ## November 15 fist colour selection
 
 Created `fist-colour-selection` from the tested inventory branch at `df912cb`, in the existing `/home/anson/Projects/forstimpy` checkout. Tag `checkpoint-before-fist-selection` preserves that starting version. No additional clone or worktree was created.

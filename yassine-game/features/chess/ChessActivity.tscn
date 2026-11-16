@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://features/chess/chess_activity.gd" id="1"]
 [ext_resource type="PackedScene" path="res://features/chess/FistChoice.tscn" id="2"]
+[ext_resource type="Script" path="res://features/chess/captured_pieces.gd" id="3"]
 
 [node name="ChessActivity" type="Control"]
 layout_mode = 0
@@ -88,7 +89,7 @@ layout_mode = 0
 text = "back"
 flat = true
 alignment = 2
-tooltip_text = "Leave match and return to the character"
+tooltip_text = "Save this match for this session and return to the character"
 
 [node name="Arrow" type="TextureRect" parent="Back"]
 layout_mode = 0
@@ -104,6 +105,16 @@ autowrap_mode = 3
 [node name="FistChoice" parent="." instance=ExtResource("2")]
 layout_mode = 0
 z_index = 2
+
+[node name="CharacterCaptures" type="Control" parent="."]
+layout_mode = 0
+mouse_filter = 2
+script = ExtResource("3")
+
+[node name="PlayerCaptures" type="Control" parent="."]
+layout_mode = 0
+mouse_filter = 2
+script = ExtResource("3")
 
 [node name="Promotion" type="PanelContainer" parent="."]
 layout_mode = 0

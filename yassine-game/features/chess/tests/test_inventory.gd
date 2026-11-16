@@ -29,10 +29,7 @@ func signature(a) -> Array:
 func manual_move(a, text: String) -> void:
 	for move in a.game.legal_moves():
 		if Rules.uci(move) == text:
-			var before: Dictionary = a.history.capture(a.game, a.bot.rng.state, a.last_move)
-			check(a.game.play(move), "Fixture move legal: " + text)
-			a.history.record(before, move, a.human_color)
-			a.last_move = move
+			check(a._commit_move(move, a._capture_snapshot()), "Fixture move legal: " + text)
 			a._refresh()
 			return
 	check(false, "Fixture move missing: " + text)
