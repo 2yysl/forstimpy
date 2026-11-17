@@ -29,7 +29,7 @@ func run() -> void:
 	check(a.choosing_colour and a.human_color == 0 and a.status.text == "choose a fist.", "Entry asks choose a fist before assigning a colour")
 	check(a.fist_choice.visible and not a.board_frame.visible, "Fists occupy the board area before play")
 	check(not a.has_node("TopStrip/Controls/Colors") and not a.has_node("TopStrip/Controls/Actions"), "Manual colour and Restart controls removed")
-	check(a.undo.disabled and a.takeback.disabled and a.resign.disabled, "Inventory is unavailable before colour selection")
+	check(a.previous.disabled and a.takeback.disabled and a.resign.disabled, "Inventory is unavailable before colour selection")
 	var opening_rng: int = a.bot.rng.state
 	var start_key: String = a.game.position_key()
 	a.select_square(Rules.square("e2"))

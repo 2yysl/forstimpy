@@ -10,11 +10,11 @@ func clear() -> void:
 	latest_human_id = 0
 	challenged_human_id = 0
 
-func capture(game, rng_state: int, last_move: Dictionary, captured_white: Array = [], captured_black: Array = []) -> Dictionary:
+func capture(game, rng_state: int, last_move: Dictionary, captured_white: Array = [], captured_black: Array = [], ply_count := 0) -> Dictionary:
 	var position = game.copy_position()
 	position.repetitions = game.repetitions.duplicate()
 	return {"position": position, "rng_state": rng_state, "last_move": last_move.duplicate(),
-		"captured_white": captured_white.duplicate(), "captured_black": captured_black.duplicate()}
+		"captured_white": captured_white.duplicate(), "captured_black": captured_black.duplicate(), "ply_count": ply_count}
 
 func record(before: Dictionary, move: Dictionary, human_color: int) -> bool:
 	var human_id := 0
@@ -47,6 +47,6 @@ func restore(index: int) -> Dictionary:
 	if index < 0 or index >= entries.size() or entries[index].human_id <= 0 or entries[index].human_id != latest_human_id:
 		return {}
 	var before: Dictionary = entries[index].before
-	var restored := capture(before.position, before.rng_state, before.last_move, before.captured_white, before.captured_black)
+	var restored := capture(before.position, before.rng_state, before.last_move, before.captured_white, before.captured_black, before.ply_count)
 	entries.resize(index)
 	return restored

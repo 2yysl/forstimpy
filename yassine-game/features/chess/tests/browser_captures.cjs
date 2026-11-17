@@ -34,13 +34,13 @@ const assert = require('node:assert/strict');
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(300);
     image = await shot('04-portrait-full-trays');
-    check(pixel(image, 43, 674) === WHITE && pixel(image, 43, 298) === BLACK, 'Portrait trays keep the correct captured-piece colours at each edge');
-    check(pixel(image, 347, 674) === WHITE && pixel(image, 347, 298) === BLACK, 'All fifteen captures fit into each portrait tray');
-    check(pixel(image, 335, 332) === '112,147,145', 'The board remains separate from the portrait capture areas');
+    check(pixel(image, 43, 634) === WHITE && pixel(image, 43, 298) === BLACK, 'Portrait trays keep the correct captured-piece colours at each edge');
+    check(pixel(image, 347, 634) === WHITE && pixel(image, 347, 298) === BLACK, 'All fifteen captures fit into each portrait tray');
+    check(pixel(image, 315, 332) === '112,147,145', 'The board remains separate from the portrait capture areas');
     await page.setViewportSize({ width: 452, height: 552 });
     await page.waitForTimeout(300);
     image = await shot('05-compact-full-trays');
-    check(pixel(image, 26, 202) !== '255,250,240' && pixel(image, 26, 370) !== '255,250,240', 'Compact windows retain two separate capture trays');
+    check(pixel(image, 26, 180) !== '255,250,240' && pixel(image, 26, 336) !== '255,250,240', 'Compact windows retain two separate capture trays');
     check(errors.length === 0, 'Capture visuals generate no browser errors');
     console.log(`CAPTURE BROWSER: ${checks}/${checks} checks passed`);
   } finally { await browser.close(); }
