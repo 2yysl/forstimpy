@@ -2,6 +2,37 @@
 
 Verified November 14, 2026, America/Toronto, against `https://github.com/2yysl/forstimpy`.
 
+## November 17 full replay, match history and external review
+
+Built on `ca9ce36` in the same `fist-colour-selection` checkout, with `checkpoint-before-match-history` preserving that version. The device crash did not lose the written source files. Local checkpoint commit `d4c92f2` and tag `checkpoint-recovered-match-history` preserve the recovered implementation; final checks and documentation were completed afterward. A post-crash fetch confirmed the remote branch still at `ce93cc5`. Nothing was pushed or merged into main under the user's continuing hold on publication.
+
+Completed games now archive once and expose New game on both the ended board and the table. New game starts fresh fists while retaining earlier session records. Match history shows local finishing time, winner/loser or draw, and ending. Selecting a record opens read-only replay, with its original orientation and captured pieces. Returning restores the unfinished current match. AI and fist-reveal work are suspended while looking at another record, including a Back/return trip during a pending reveal. Promotions and takeback eligibility remain intact.
+
+The former undo button is replaced by previous/next arrows, a position counter and Live/My game. `chess_record.gd` stores initial FEN, compact committed moves, SAN, captured identities, player metadata and Unix start/finish times. It reconstructs one cached review position on navigation. The existing three full takeback snapshots remain bounded and now include a move-log index, so an earned takeback also removes withdrawn moves from replay/export. Search copies do not carry full replay records. `match_archive.gd` retains completed records rather than scenes or bots.
+
+Review on Chess.com copies the full selected completed PGN and invokes `https://www.chess.com/analysis`; the user pastes it into the site's PGN field and loads it. The export dialog also offers manual copy and `https://lichess.org/paste`. No automatic upload, account login integration or local inaccuracy scoring is performed. Website analysis and account/access rules apply. The supported copy/paste route is explicit; a one-click preloaded-game URL was not verified. PGNs include the actual result, custom starting FEN when needed, legal SAN disambiguation, castling, en passant, promotion and check/mate.
+
+| Gate | Result |
+| --- | --- |
+| Full-record, SAN and replay unit suite | **34/34 passed** |
+| New-game/archive/replay/clipboard integration | **38/38 passed** |
+| Independent python-chess PGN parsing and exact final FEN | **13/13 passed** |
+| Existing inventory / resume / captured pieces | **56/56**, **33/33**, **48/48 passed** |
+| Fist choice / full game integration | **56/56**, **37/37 passed** |
+| Native letter / dap | **28/28**, **36/36 passed** |
+| Chromium gameplay and resume | **33/33 passed** |
+| Chromium history, clipboard, links and dialog bounds | **15/15 passed** |
+| Chromium letter / dap / captures | **24/24**, **16/16**, **8/8 passed** |
+| Fresh configured-entry and fixture Web exports | Passed |
+
+Total: **475 checks passed**. Native clipboard and browser clipboard contents matched the selected game. Browser instrumentation observed the two official review URLs without contacting those external services during the tests. The independent parser reproduced all 13 final positions, including both en passant directions, both castling directions, all disambiguation cases, promotion/underpromotion and takeback truncation. A 400-ply reconstruction took approximately **1.9 ms** on this device. Repeated archived reviews retained one activity, without added scene nodes or duplicate archive entries.
+
+Visual inspection covered desktop 1280×720, portrait 390×844 and the existing compact capture fixture. History and read-only PGN colours were adjusted for clear text. Deferred relayout fixes the wrapped-help label's temporary minimum size so the PGN dialog's buttons remain inside the viewport. The main-scene inheritance uses its existing resource path to avoid a stale-cache UID warning.
+
+Two verification issues were resolved without reducing bot strength or altering letter behaviour: the browser smoke test's former fixed 1.2-second assumption was replaced with an actual opening-reply completion check; a native letter test that failed its still-playing assertion during concurrent export load passed **28/28** in isolation. The observed browser screenshot showed the bot was still thinking at the old deadline. The final native/browser/export logs contain no remaining script errors or failed checks.
+
+Evidence: ignored `builds/match-history/verification/`, including PGNs and their expected final FEN manifest, `independent-pgn.log`, native/browser logs and reviewed screenshots. The final full playable export is `builds/match-history/final-web/`; `final-history-fixture/` is developer-only. The temporary python-chess validator was installed under `/tmp` and is not a game dependency. Closing the app still clears the active game and archive; complete records begin with games started in this version. Earlier sections describe historical controls and behaviour.
+
 ## November 16 session resume and captured pieces
 
 Implemented in that order on the existing `fist-colour-selection` branch. `checkpoint-before-chess-resume` preserves the dap-enabled game at `f352c29`; commit `43ef485` implements session resume, and `checkpoint-before-captured-pieces` preserves it before capture work. All work stays in the canonical checkout. Nothing was pushed or merged into main for these changes.

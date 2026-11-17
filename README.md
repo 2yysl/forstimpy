@@ -6,9 +6,13 @@ One local repository contains the complete game and its Git versions. The perman
 
 Open `yassine-game/project.godot` in Godot and press **F5**. On `fist-colour-selection`, the normal game launch includes the original title, character invitation, fist colour choice, yyslChess and the inventory. No alternate project or test scene is needed.
 
-On first entering chess, choose one of the two closed fists. The selected hand opens to reveal a White or Black queen, assigning your colour. The board starts automatically after the brief reveal. Manual colour buttons and Restart have been removed. Back saves the current match in memory; entering chess again resumes the same board, colour and inventory. This lasts while the application stays open, including finished/resigned games. Close and relaunch the game for a fresh session.
+On first entering chess, choose one of the two closed fists. The selected hand opens to reveal a White or Black queen, assigning your colour. The board starts automatically after the brief reveal. Back saves the current match in memory; entering chess again resumes the same board, colour and inventory. After any result, **new game** starts fresh fists and preserves the finished game in **match history · this session**. New game is also available at the table after leaving a finished match. Closing the application clears the active game and session archive.
 
-Captured pieces appear beside the capturing side: your collection stays near your end of the board and the character's stays near theirs. These use the existing replaceable piece textures. Collections stay with the saved match, show the correct historical pieces during undo previews, and revert when an earned takeback returns pieces to the board.
+Captured pieces appear beside the capturing side: your collection stays near your end of the board and the character's stays near theirs. These use the existing replaceable piece textures. Collections stay with the saved match, show the correct historical pieces during replay, and revert when an earned takeback returns pieces to the board.
+
+The inventory's **← / →** arrows review every recorded individual move; **live** returns to the current board. Match-history entries show the local finishing time, winner/loser or draw, and ending. Select one to replay it; **my game** restores an unfinished current match. Desktop shows the list beside the board; portrait uses the **match history** button.
+
+For a finished game, **review on Chess.com** copies its complete PGN and opens Chess.com's analysis page. Paste into its PGN field and choose Load. The dialog also provides manual copy and a Lichess import link. Analysis happens on the selected website, with its account/access rules; the game does not grade moves locally or upload automatically.
 
 On the table scene, hover over the letter beside the dap interaction to open it and hear the existing paper-crumple clip. Click the exposed note to read the original birthday note. Back or Escape returns to the same table. The letter stays open while moving between its envelope and note, and closes when the cursor leaves.
 
@@ -42,7 +46,7 @@ The chess demo and tests are developer tools inside this project. They are not a
 | `main` | Original published game; merges require the user's explicit instruction |
 | `chess-character-implementation` | Chess with fixed difficulty, before inventory |
 | `undo-user-inventory` | Saved game with inventory and consolidated organization |
-| `fist-colour-selection` | Current game with fist colour choice, letter, weighted daps, resumable chess and captured pieces |
+| `fist-colour-selection` | Current game with fists, letter, weighted daps, resumable chess, captures, replay, session history and PGN review |
 | `checkpoint-before-inventory` | Saved commit immediately before inventory work |
 | `checkpoint-before-organization` | Saved inventory commit before this reorganization |
 | `checkpoint-before-fist-selection` | Saved consolidated inventory game before fist selection |
@@ -50,6 +54,8 @@ The chess demo and tests are developer tools inside this project. They are not a
 | `checkpoint-before-dap-interaction` | Saved letter-enabled game before weighted dap/audio work |
 | `checkpoint-before-chess-resume` | Saved dap-enabled game before session-only chess resume |
 | `checkpoint-before-captured-pieces` | Saved resumable chess before captured-piece displays |
+| `checkpoint-before-match-history` | Saved captured-piece game before full replay, archive and review work |
+| `checkpoint-recovered-match-history` | Local development checkpoint preserving replay/history work after the device crash |
 
 Branches and checkpoint tags preserve versions in Git. Switching branches updates the same local folder; older versions retain their historical internal layout. Save and commit work, close Godot, switch the branch, then reopen the same `project.godot`.
 
