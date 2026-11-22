@@ -4,6 +4,8 @@ const INK := Color("#243333")
 const CREAM := Color("#fff2cc")
 const WOOD := Color("#bb805e")
 const BASE := Vector2(1280, 720)
+const TANGERS_BACKGROUND := preload("res://assets/backgrounds/tangersbackground.png")
+const BESSERER_BACKGROUND := preload("res://assets/backgrounds/195background.png")
 const LetterScene = preload("res://features/letter/LetterInteraction.tscn")
 const DapScene = preload("res://features/dap/DapInteraction.tscn")
 var overhead := false
@@ -163,7 +165,7 @@ func start_game() -> void:
 func _show_invitation() -> void:
 	if overhead:
 		return
-	dialogue.text = "Want to play chess?"
+	dialogue.text = "Let's play chess."
 	dialogue.show()
 	choices.show()
 	board_button.disabled = false
@@ -319,15 +321,9 @@ func _draw() -> void:
 			draw_circle(p, 67, Color("#abc899"))
 		_line([Vector2(980, 156), Vector2(994, 163), Vector2(1008, 155)], INK, 3)
 	elif location_index == 1:
-		for x in [975, 1070, 1165]:
-			draw_rect(Rect2(x, 160, 60, 190), Color("#bed9d9"))
-			draw_rect(Rect2(x, 160, 60, 190), INK, false, 3)
-		_line([Vector2(945, 355), Vector2(1250, 355)], WOOD, 7)
+		draw_texture_rect(TANGERS_BACKGROUND, Rect2(Vector2.ZERO, BASE), false)
 	else:
-		draw_rect(Rect2(1020, 145, 180, 200), Color("#e6d2bf"))
-		draw_rect(Rect2(1040, 165, 140, 110), Color("#a5c9d8"))
-		_line([Vector2(1110, 165), Vector2(1110, 275)], INK, 3)
-		_line([Vector2(1040, 220), Vector2(1180, 220)], INK, 3)
+		draw_texture_rect(BESSERER_BACKGROUND, Rect2(Vector2.ZERO, BASE), false)
 	if overhead:
 		_shape([Vector2(240, 155), Vector2(1050, 155), Vector2(1110, 715), Vector2(185, 715)], WOOD)
 		_board(Vector2(410, 180), Vector2(890, 180), Vector2(410, 660), Vector2(890, 660))

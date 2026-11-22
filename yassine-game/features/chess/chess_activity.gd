@@ -9,7 +9,7 @@ const CHESS_REVIEW_URL := "https://www.chess.com/analysis"
 const LICHESS_REVIEW_URL := "https://lichess.org/paste"
 const COLOUR_REVEAL_SECONDS := 1.2
 @export var visual_theme: Resource = preload("res://features/chess/chess_visual_theme.tres")
-@export var idle_dialogue := "hey bro, your move. no rush."
+@export var idle_dialogue := "your move btw."
 @export var thinking_dialogue := "hmm… let me think."
 var game = Rules.new()
 var bot: Node
@@ -400,7 +400,7 @@ func _refresh() -> void:
 			record.start_fen = Record.fen(game)
 		record.finish(ended)
 		archive.add(record)
-	status.text = ended if not ended.is_empty() else (thinking_dialogue if thinking else ("Careful — your king is in check!" if game.in_check(game.turn) else idle_dialogue))
+	status.text = ended if not ended.is_empty() else (thinking_dialogue if thinking else ("Check!" if game.in_check(game.turn) else idle_dialogue))
 	details.text = "with " + bot.behavior.display_name + "\nYou: " + ("White" if human_color == 1 else "Black") + "\n" + bot.behavior.target_rating_label
 	portrait.texture = visual_theme.portrait_thinking if thinking else visual_theme.portrait_idle
 	var viewing_color := _view_colour()
@@ -425,13 +425,13 @@ func _refresh() -> void:
 	promotion_row.visible = not promotion_moves.is_empty() and review_index < 0 and not rps_active and review_record == null
 	$Promotion.visible = promotion_row.visible
 	if not promotion_moves.is_empty():
-		status.text = "Which piece are you going for?"
+		status.text = "Promote to?"
 	if review_index >= 0:
 		status.text = "Move %d of %d · %s" % [review_index, total, str(source.moves[review_index - 1].san) if review_index > 0 else "start position"]
 		if review_record != null:
 			details.text = review_record.summary()
 	if choosing_colour and review_record == null:
-		status.text = "choose a fist." if human_color == 0 else ("White queen — you play White." if human_color == 1 else "Black queen — you play Black.")
+		status.text = "choose a paw." if human_color == 0 else ("White queen — you play White." if human_color == 1 else "Black queen — you play Black.")
 		details.text = "with " + bot.behavior.display_name + "\n" + ("Your colour is hidden" if human_color == 0 else ("You: White" if human_color == 1 else "You: Black"))
 	queue_redraw()
 
