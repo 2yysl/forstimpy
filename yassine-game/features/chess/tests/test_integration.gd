@@ -61,11 +61,11 @@ func _run() -> void:
 	await process_frame
 	check(is_instance_valid(stage.activity), "Board hotspot opens chess during invitation")
 	var activity = stage.activity
-	check(activity.choosing_colour and activity.status.text == "choose a fist.", "Chess entry begins with the character's fist choice")
+	check(activity.choosing_colour and activity.status.text == "choose a paw.", "Chess entry begins with the character's fist choice")
 	await choose_white(activity)
 	check(activity.game.board.count(0) == 32 and activity.human_color == 1, "White game starts with 32 pieces")
 	check(activity.header.texture != null and activity.portrait.texture != null and activity.get_node("TopStrip/Memories").texture != null, "Top strip has replaceable frame, portrait and memory art")
-	check(activity.dialogue_bubble.get_rect().end.y < activity.board_rect.position.y and activity.board_frame.texture != null and activity.envelope.texture != null and activity.get_node("Back/Arrow").texture != null, "Dialogue sits above the large board with envelope and back artwork")
+	check(activity.dialogue_bubble.get_rect().end.y < activity.board_rect.position.y and activity.board_frame.texture != null and activity.letter.get_node("Artwork").texture != null and activity.get_node("Back/Arrow").texture != null, "Dialogue sits above the large board with envelope and back artwork")
 	activity.select_square(Rules.square("e2"))
 	check(activity.selected == Rules.square("e2"), "Player can select own piece")
 	activity.select_square(Rules.square("e5"))

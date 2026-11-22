@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://features/chess/chess_activity.gd" id="1"]
 [ext_resource type="PackedScene" path="res://features/chess/FistChoice.tscn" id="2"]
 [ext_resource type="Script" path="res://features/chess/captured_pieces.gd" id="3"]
+
+[ext_resource type="PackedScene" path="res://features/letter/LetterInteraction.tscn" id="4"]
 
 [node name="ChessActivity" type="Control"]
 layout_mode = 0
@@ -72,17 +74,8 @@ patch_margin_right = 12
 patch_margin_bottom = 12
 draw_center = false
 
-[node name="SealedEnvelope" type="TextureRect" parent="."]
-layout_mode = 0
-mouse_filter = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="EnvelopeCaption" type="Label" parent="."]
-layout_mode = 0
-mouse_filter = 2
-text = "for you"
-horizontal_alignment = 1
+[node name="Letter" parent="." instance=ExtResource("4")]
+visible = false
 
 [node name="Back" type="Button" parent="."]
 layout_mode = 0
@@ -160,35 +153,6 @@ theme_override_constants/separation = 6
 layout_mode = 2
 text = "inventory"
 
-[node name="Replay" type="HBoxContainer" parent="Inventory/Contents"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Previous" type="Button" parent="Inventory/Contents/Replay"]
-layout_mode = 2
-custom_minimum_size = Vector2(40, 30)
-text = "←"
-tooltip_text = "Previous move (review only)"
-
-[node name="Position" type="Label" parent="Inventory/Contents/Replay"]
-layout_mode = 2
-size_flags_horizontal = 3
-horizontal_alignment = 1
-vertical_alignment = 1
-text = "0 / 0"
-
-[node name="Next" type="Button" parent="Inventory/Contents/Replay"]
-layout_mode = 2
-custom_minimum_size = Vector2(40, 30)
-text = "→"
-tooltip_text = "Next move (review only)"
-
-[node name="Live" type="Button" parent="Inventory/Contents/Replay"]
-layout_mode = 2
-custom_minimum_size = Vector2(66, 30)
-text = "live"
-tooltip_text = "Return to your current match"
-
 [node name="Buttons" type="HBoxContainer" parent="Inventory/Contents"]
 layout_mode = 2
 theme_override_constants/separation = 8
@@ -223,40 +187,71 @@ custom_minimum_size = Vector2(0, 32)
 text = "resign"
 tooltip_text = "Concede the match."
 
-[node name="HistoryButton" type="Button" parent="."]
+[node name="MovesButton" type="Button" parent="."]
 layout_mode = 0
-text = "match history (0)"
+text = "moves"
 
-[node name="HistoryShade" type="ColorRect" parent="."]
+[node name="MovesShade" type="ColorRect" parent="."]
 layout_mode = 0
 visible = false
 z_index = 20
 color = Color(0.08, 0.12, 0.12, 0.55)
 
-[node name="MatchHistory" type="PanelContainer" parent="."]
+[node name="MovePanel" type="PanelContainer" parent="."]
 layout_mode = 0
 
-[node name="Contents" type="VBoxContainer" parent="MatchHistory"]
+[node name="Contents" type="VBoxContainer" parent="MovePanel"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Title" type="Label" parent="MatchHistory/Contents"]
+[node name="Title" type="Label" parent="MovePanel/Contents"]
 layout_mode = 2
-text = "match history · this session"
+text = "moves"
 
-[node name="List" type="ItemList" parent="MatchHistory/Contents"]
+[node name="List" type="ItemList" parent="MovePanel/Contents"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 60)
 size_flags_vertical = 3
 allow_reselect = true
+max_columns = 2
+same_column_width = true
 
-[node name="Empty" type="Label" parent="MatchHistory/Contents"]
+[node name="Empty" type="Label" parent="MovePanel/Contents"]
 layout_mode = 2
-text = "No finished matches yet."
+text = "No moves yet."
 
-[node name="Close" type="Button" parent="MatchHistory/Contents"]
+[node name="Replay" type="HBoxContainer" parent="MovePanel/Contents"]
 layout_mode = 2
-text = "back"
+theme_override_constants/separation = 6
+
+[node name="Previous" type="Button" parent="MovePanel/Contents/Replay"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 30)
+text = "←"
+tooltip_text = "Previous move (review only)"
+
+[node name="Position" type="Label" parent="MovePanel/Contents/Replay"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "0 / 0"
+
+[node name="Next" type="Button" parent="MovePanel/Contents/Replay"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 30)
+text = "→"
+tooltip_text = "Next move (review only)"
+
+[node name="Live" type="Button" parent="MovePanel/Contents/Replay"]
+layout_mode = 2
+custom_minimum_size = Vector2(66, 30)
+text = "live"
+tooltip_text = "Return to your current match"
+
+[node name="Close" type="Button" parent="MovePanel/Contents"]
+layout_mode = 2
+text = "close"
 
 [node name="PGN" type="Control" parent="."]
 layout_mode = 0

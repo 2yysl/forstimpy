@@ -4,9 +4,11 @@ const INK := Color("#243333")
 const CREAM := Color("#fff2cc")
 const WOOD := Color("#bb805e")
 const BASE := Vector2(1280, 720)
+const SETTING_BUTTON_SIZE := Vector2(46, 44)
+const SETTING_FONT_SIZE := 22
 const TANGERS_BACKGROUND := preload("res://assets/backgrounds/tangersbackground.png")
 const BESSERER_BACKGROUND := preload("res://assets/backgrounds/195background.png")
-const LetterScene = preload("res://features/letter/LetterInteraction.tscn")
+const LOCATION_TEXT_COLORS := [INK, CREAM, Color("#fff8ef")]
 const DapScene = preload("res://features/dap/DapInteraction.tscn")
 var overhead := false
 var started := false
@@ -30,7 +32,6 @@ var dap_line: Label
 var board_button: Button
 var back_button: Button
 var view_label: Label
-var letter
 var dap
 
 func _ready() -> void:
@@ -45,11 +46,11 @@ func _ready() -> void:
 	settings_panel.position = Vector2(-180, 130)
 	settings_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(settings_panel)
-	_label(settings_panel, "setting", Vector2.ZERO, Vector2(160, 35), 22)
+	_label(settings_panel, "setting", Vector2.ZERO, Vector2(160, 35), SETTING_FONT_SIZE)
 	var names := ["Park", "Tangers", "195 Besserer"]
 	var colors := [Color("#c3825c"), Color("#7d8b90"), Color("#a30c31")]
 	for i in range(3):
-		var button := _button(settings_panel, str(i + 1), Vector2(0, 44 + i * 55), Vector2(46, 44), colors[i])
+		var button := _button(settings_panel, str(i + 1), Vector2(0, 44 + i * 55), SETTING_BUTTON_SIZE, colors[i])
 		button.tooltip_text = names[i]
 		button.pressed.connect(_change_location.bind(i))
 	dialogue = _label(ui, "", Vector2(250, 30), Vector2(860, 85), 34)
@@ -97,13 +98,9 @@ func _ready() -> void:
 	view_label = _label(ui, "chess board placeholder", Vector2(470, 668), Vector2(370, 30), 18)
 	view_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	view_label.hide()
-	letter = LetterScene.instantiate()
-	letter.name = "Letter"
-	letter.position = Vector2(192, 340)
-	ui.add_child(letter)
-	letter.reading_changed.connect(_letter_reading_changed)
 	resized.connect(_layout)
 	_layout()
+	_change_location(location_index)
 
 func _label(parent: Node, text: String, pos: Vector2, extent: Vector2, font_size: int) -> Label:
 	var label := Label.new()
@@ -125,8 +122,8 @@ func _button(parent: Node, text: String, pos: Vector2, extent: Vector2, color: C
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.add_theme_font_override("font", preload("res://ttf/JetBrainsMono-Regular.ttf"))
 	button.add_theme_font_size_override("font_size", 23)
-	button.add_theme_color_override("font_color", color)
-	button.add_theme_color_override("font_hover_color", color)
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		button.add_theme_color_override(state, color)
 	for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(1, 1, 1, 0) if invisible else CREAM
@@ -169,19 +166,17 @@ func _show_invitation() -> void:
 	dialogue.show()
 	choices.show()
 	board_button.disabled = false
-	letter.set_enabled(true)
-
-func _letter_is_reading() -> bool:
-	return is_instance_valid(letter) and letter.reading
 
 func _change_location(index: int) -> void:
-	if _letter_is_reading():
-		return
 	location_index = index
+	for label in [dialogue, dap_line]:
+		label.add_theme_color_override("font_color", LOCATION_TEXT_COLORS[index])
+		label.add_theme_color_override("font_outline_color", INK)
+		label.add_theme_constant_override("outline_size", 0 if index == 0 else 3)
 	queue_redraw()
 
 func _dap() -> void:
-	if not entrance_done or changing_view or overhead or not ui.is_visible_in_tree() or _letter_is_reading():
+	if not entrance_done or changing_view or overhead or not ui.is_visible_in_tree():
 		return
 	dap.trigger()
 
@@ -203,16 +198,11 @@ func _table_visibility_changed() -> void:
 		hand_hover = false
 		queue_redraw()
 
-func _letter_reading_changed(reading: bool) -> void:
-	if reading:
-		dap.stop()
-
 func _answer(joke: bool) -> void:
-	if changing_view or not invitation_ready or _letter_is_reading():
+	if changing_view or not invitation_ready:
 		return
 	changing_view = true
 	dap.stop()
-	letter.set_enabled(false)
 	choices.hide()
 	board_button.disabled = true
 	if joke:
@@ -263,7 +253,6 @@ void fragment() {
 	wipe_material.shader = wipe_shader
 	cover.material = wipe_material
 	overhead = to_overhead
-	letter.visible = not overhead
 	dialogue.hide()
 	choices.hide()
 	dap_line.hide()
@@ -278,7 +267,6 @@ void fragment() {
 	wipe.tween_method(func(value: float): wipe_material.set_shader_parameter("progress", value), 0.0, 1.0, 0.55)
 	await wipe.finished
 	wipe_layer.queue_free()
-	letter.set_enabled(not overhead)
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if overhead and event.is_action_pressed("ui_cancel"):

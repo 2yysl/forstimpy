@@ -26,8 +26,10 @@ func run() -> void:
 	var scene = load("res://features/chess/ChessActivity.tscn")
 	var a = scene.instantiate()
 	root.add_child(a)
-	check(a.choosing_colour and a.human_color == 0 and a.status.text == "choose a fist.", "Entry asks choose a fist before assigning a colour")
-	check(a.fist_choice.visible and not a.board_frame.visible, "Fists occupy the board area before play")
+	check(a.choosing_colour and a.human_color == 0 and a.status.text == "choose a paw.", "Entry asks choose a paw before assigning a colour")
+	check(a.fist_choice.visible and not a.board_frame.visible, "Paws occupy the selection area before play")
+	check(a.fist_choice.position.y == a.header.get_rect().end.y + 2.0 and a.dialogue_bubble.z_index > a.fist_choice.z_index, "Paws start below the header with the dialogue layered above")
+	check(not a.inventory.visible and not a.get_node("MovePanel").visible and not a.get_node("MovesButton").visible and not a.letter.visible, "Inventory, moves and letter are hidden throughout selection")
 	check(not a.has_node("TopStrip/Controls/Colors") and not a.has_node("TopStrip/Controls/Actions"), "Manual colour and Restart controls removed")
 	check(a.previous.disabled and a.takeback.disabled and a.resign.disabled, "Inventory is unavailable before colour selection")
 	var opening_rng: int = a.bot.rng.state
@@ -57,6 +59,7 @@ func run() -> void:
 			check(a.fist_choice.get_node("Left/Hand").texture == a.visual_theme.left_fist_closed and a.fist_choice.get_node("Right/Hand").texture == a.visual_theme.right_fist_closed, "Entry uses separate left/right closed images")
 			chosen.pressed.emit()
 			check(a.human_color == expected and a.choosing_colour, "Selected hidden queen sets the player's colour during reveal")
+			check(not a.inventory.visible and not a.letter.visible, "Inventory and letter stay hidden during the queen reveal")
 			check(chosen.get_node("Hand/Queen").texture == a.visual_theme.piece_texture(expected * Rules.QUEEN) and chosen.get_node("Hand/Queen").visible and not other.get_node("Hand/Queen").visible, "Only the selected fist reveals its correct queen texture")
 			check(chosen.get_node("Hand").texture == (a.visual_theme.left_fist_opened if hand == 0 else a.visual_theme.right_fist_opened) and other.get_node("Hand").texture == (a.visual_theme.right_fist_closed if hand == 0 else a.visual_theme.left_fist_closed), "Chosen fist opens while the other stays closed")
 			other.pressed.emit()
@@ -66,6 +69,7 @@ func run() -> void:
 			check(not a.thinking and a.history.entries.is_empty() and a.selected == -1, "Chess remains frozen while the queen is shown")
 			await wait_match(a)
 			check(a.human_color == expected and a.game.turn == expected and a.board_frame.visible and not a.fist_choice.visible, "Match uses assigned colour and shows the board without another click")
+			check(a.inventory.visible and a.letter.visible and a.letter.enabled, "Inventory and the interactive letter appear when play starts")
 			check(a.history.entries.size() == (0 if expected == 1 else 1), "White player moves first; Black player receives exactly one White opening")
 			if expected == -1:
 				check(a.game.board[Rules.square("e4")] == Rules.PAWN, "Character opens legally as White when player draws Black")
