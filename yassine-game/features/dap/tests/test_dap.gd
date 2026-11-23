@@ -127,15 +127,6 @@ func run() -> void:
 	check(memory_after - memory_before < 524288, "Spam leaves less than 512 KiB of additional retained memory after warmup")
 	check(batch_times[94] < 16.67, "At least 95% of 100-press batches fit within one 60 Hz frame")
 	stage.dap_button.pressed.emit()
-	stage.letter.get_node("EnvelopeHover").mouse_entered.emit()
-	stage.letter.read_note()
-	check(stage.letter.reading and not dap.active and not dap.player.playing and dap.feedback_timer.is_stopped() and not stage.dap_line.visible, "Opening the full note cancels dap audio, feedback and timer")
-	count_before = stage.dap_count
-	stage.dap_button.pressed.emit()
-	check(stage.dap_count == count_before and not dap.active, "The note reader blocks hand input underneath")
-	stage.letter.reader.close_note()
-	stage.dap_button.pressed.emit()
-	check(stage.dap_count == count_before + 1 and dap.active, "The hand works immediately after returning from the note")
 	stage.ui.hide()
 	check(not dap.active and not stage.dap_busy and not dap.player.playing and dap.feedback_timer.is_stopped(), "Hiding the table stops all dap feedback")
 	count_before = stage.dap_count

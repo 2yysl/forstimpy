@@ -9,7 +9,7 @@ const CHESS_REVIEW_URL := "https://www.chess.com/analysis"
 const LICHESS_REVIEW_URL := "https://lichess.org/paste"
 const COLOUR_REVEAL_SECONDS := 1.2
 @export var visual_theme: Resource = preload("res://features/chess/chess_visual_theme.tres")
-@export var idle_dialogue := "hey bro, your move. no rush."
+@export var idle_dialogue := "your move btw."
 @export var thinking_dialogue := "hmm… let me think."
 var game = Rules.new()
 var bot: Node
@@ -38,7 +38,8 @@ var record
 var archive = Archive.new()
 var review_record
 var replay_cache: Dictionary = {}
-var history_open := false
+var moves_open := false
+var move_labels: Array[String] = []
 var review_index := -1
 var previous: Button
 var next: Button
@@ -57,7 +58,7 @@ var header: NinePatchRect
 var portrait: TextureRect
 var dialogue_bubble: TextureRect
 var board_frame: NinePatchRect
-var envelope: TextureRect
+var letter
 var back: Button
 var scene_font: Font
 
@@ -81,12 +82,12 @@ func _ready() -> void:
 	status = $Dialogue/Status
 	details = $Details
 	board_frame = $BoardFrame
-	envelope = $SealedEnvelope
+	letter = $Letter
 	back = $Back
 	inventory = $Inventory
-	previous = $Inventory/Contents/Replay/Previous
-	next = $Inventory/Contents/Replay/Next
-	live = $Inventory/Contents/Replay/Live
+	previous = $MovePanel/Contents/Replay/Previous
+	next = $MovePanel/Contents/Replay/Next
+	live = $MovePanel/Contents/Replay/Live
 	new_game = $Inventory/Contents/Buttons/NewGame
 	chess_review = $Inventory/Contents/Buttons/ChessReview
 	takeback = $Inventory/Contents/Buttons/Takeback
@@ -103,13 +104,12 @@ func _ready() -> void:
 	promotion_row = $Promotion/Options
 	previous.pressed.connect(_review_previous)
 	next.pressed.connect(_review_next)
-	live.pressed.connect(_return_live)
+	live.pressed.connect(_leave_replay)
 	new_game.pressed.connect(start_new_game)
 	chess_review.pressed.connect(_open_external_review)
-	$HistoryButton.pressed.connect(_show_history)
-	$MatchHistory/Contents/Close.pressed.connect(_close_history)
-	$MatchHistory/Contents/List.item_selected.connect(_open_archived)
-	archive.changed.connect(_refresh_match_list)
+	$MovesButton.pressed.connect(_show_moves)
+	$MovePanel/Contents/Close.pressed.connect(_close_moves)
+	$MovePanel/Contents/List.item_selected.connect(_select_recorded_move)
 	$PGN/Dialog/Contents/Buttons/Close.pressed.connect(func(): $PGN.hide())
 	$PGN/Dialog/Contents/Buttons/Copy.pressed.connect(_copy_pgn)
 	$PGN/Dialog/Contents/Buttons/Chess.pressed.connect(_launch_review.bind(CHESS_REVIEW_URL))
@@ -123,21 +123,20 @@ func _ready() -> void:
 	for kind in [Rules.QUEEN, Rules.ROOK, Rules.BISHOP, Rules.KNIGHT]:
 		promotion_row.get_node({5: "Queen", 4: "Rook", 3: "Bishop", 2: "Knight"}[kind]).pressed.connect(_promote.bind(kind))
 	_apply_artwork()
-	for label in [status, details, $EnvelopeCaption, $TopStrip/Atmosphere, $TopStrip/Controls/Assignment, $Inventory/Contents/Title, $Inventory/Contents/Replay/Position, $MatchHistory/Contents/Title, $MatchHistory/Contents/Empty, $PGN/Dialog/Contents/Title, $PGN/Dialog/Contents/Help,
+	for label in [status, details, $TopStrip/Atmosphere, $TopStrip/Controls/Assignment, $Inventory/Contents/Title, $MovePanel/Contents/Replay/Position, $MovePanel/Contents/Title, $MovePanel/Contents/Empty, $PGN/Dialog/Contents/Title, $PGN/Dialog/Contents/Help,
 		$RPS/Dialog/Contents/Title, $RPS/Dialog/Contents/Description, $RPS/Dialog/Contents/Result]:
 		label.add_theme_color_override("font_color", visual_theme.ink_color)
 	status.add_theme_font_size_override("font_size", 22)
 	details.add_theme_font_size_override("font_size", 14)
 	$TopStrip/Atmosphere.add_theme_font_size_override("font_size", 14)
-	$EnvelopeCaption.add_theme_font_size_override("font_size", 14)
 	$Inventory/Contents/Title.add_theme_font_size_override("font_size", 12)
 	$TopStrip/Controls/Assignment.add_theme_font_size_override("font_size", 14)
-	$Inventory/Contents/Replay/Position.add_theme_font_size_override("font_size", 12)
-	$MatchHistory/Contents/Title.add_theme_font_size_override("font_size", 12)
-	$MatchHistory/Contents/Empty.add_theme_font_size_override("font_size", 12)
-	$MatchHistory/Contents/List.add_theme_font_size_override("font_size", 12)
+	$MovePanel/Contents/Replay/Position.add_theme_font_size_override("font_size", 12)
+	$MovePanel/Contents/Title.add_theme_font_size_override("font_size", 12)
+	$MovePanel/Contents/Empty.add_theme_font_size_override("font_size", 12)
+	$MovePanel/Contents/List.add_theme_font_size_override("font_size", 12)
 	$PGN/Dialog/Contents/Help.add_theme_font_size_override("font_size", 14)
-	for button in [back, previous, next, live, new_game, chess_review, takeback, resign, $HistoryButton, $MatchHistory/Contents/Close, $RPS/Dialog/Contents/Close] + $PGN/Dialog/Contents/Buttons.get_children() + promotion_row.get_children() + $RPS/Dialog/Contents/Choices.get_children():
+	for button in [back, previous, next, live, new_game, chess_review, takeback, resign, $MovesButton, $MovePanel/Contents/Close, $RPS/Dialog/Contents/Close] + $PGN/Dialog/Contents/Buttons.get_children() + promotion_row.get_children() + $RPS/Dialog/Contents/Choices.get_children():
 		_style_button(button)
 	var promotion_style := StyleBoxFlat.new()
 	promotion_style.bg_color = visual_theme.panel_color
@@ -156,18 +155,18 @@ func _ready() -> void:
 	dialog_style.content_margin_top = 16
 	dialog_style.content_margin_bottom = 16
 	$RPS/Dialog.add_theme_stylebox_override("panel", dialog_style)
-	$MatchHistory.add_theme_stylebox_override("panel", promotion_style.duplicate())
+	$MovePanel.add_theme_stylebox_override("panel", promotion_style.duplicate())
 	var list_style: StyleBoxFlat = promotion_style.duplicate()
 	list_style.set_border_width_all(0)
-	$MatchHistory/Contents/List.add_theme_stylebox_override("panel", list_style)
-	$MatchHistory/Contents/List.add_theme_color_override("font_color", visual_theme.ink_color)
-	$MatchHistory/Contents/List.add_theme_color_override("font_selected_color", visual_theme.ink_color)
-	$MatchHistory/Contents/List.add_theme_color_override("font_hovered_color", visual_theme.ink_color)
+	$MovePanel/Contents/List.add_theme_stylebox_override("panel", list_style)
+	$MovePanel/Contents/List.add_theme_color_override("font_color", visual_theme.ink_color)
+	$MovePanel/Contents/List.add_theme_color_override("font_selected_color", visual_theme.ink_color)
+	$MovePanel/Contents/List.add_theme_color_override("font_hovered_color", visual_theme.ink_color)
 	var selection_style: StyleBoxFlat = list_style.duplicate()
 	selection_style.bg_color = visual_theme.light_square
-	$MatchHistory/Contents/List.add_theme_stylebox_override("selected", selection_style)
-	$MatchHistory/Contents/List.add_theme_stylebox_override("selected_focus", selection_style)
-	$MatchHistory/Contents/List.add_theme_stylebox_override("hovered", selection_style)
+	$MovePanel/Contents/List.add_theme_stylebox_override("selected", selection_style)
+	$MovePanel/Contents/List.add_theme_stylebox_override("selected_focus", selection_style)
+	$MovePanel/Contents/List.add_theme_stylebox_override("hovered", selection_style)
 	$PGN/Dialog/Contents/Text.add_theme_stylebox_override("normal", list_style.duplicate())
 	$PGN/Dialog/Contents/Text.add_theme_stylebox_override("read_only", list_style.duplicate())
 	$PGN/Dialog/Contents/Text.add_theme_color_override("font_color", visual_theme.ink_color)
@@ -181,7 +180,6 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit_window)
 	_fit_window()
 	restart(0)
-	_refresh_match_list()
 
 func _fit_window() -> void:
 	# The original project stretches a 1280-wide canvas. Use actual window
@@ -198,7 +196,6 @@ func _apply_artwork() -> void:
 	$TopStrip/Memories.texture = visual_theme.memories
 	dialogue_bubble.texture = visual_theme.dialogue_bubble
 	board_frame.texture = visual_theme.board_frame
-	envelope.texture = visual_theme.sealed_envelope
 	$Back/Arrow.texture = visual_theme.back_arrow
 	fist_choice.visual_theme = visual_theme
 	fist_choice.apply_artwork()
@@ -228,6 +225,8 @@ func _layout() -> void:
 	if not is_instance_valid(panel):
 		return
 	var narrow := size.x < 760
+	var picking_colour := choosing_colour and review_record == null
+	var moves_popup := size.x < 1100 or size.y < 655
 	status.add_theme_font_size_override("font_size", 18 if narrow else 22)
 	if narrow:
 		var compact := size.y < 700
@@ -237,8 +236,6 @@ func _layout() -> void:
 		_place($TopStrip/Memories, Rect2(header.size.x * 0.64, 8, header.size.x * 0.33, 26 if compact else 64))
 		_place(panel, Rect2(12, 36 if compact else 80, header.size.x - 24, 58 if compact else 62))
 		_place(dialogue_bubble, Rect2(82, 126 if compact else 176, size.x - 98, 40 if compact else 76))
-		_place(envelope, Rect2(14, 126 if compact else 186, 60, 24 if compact else 48))
-		_place($EnvelopeCaption, Rect2(14, 154 if compact else 235, 60, 18 if compact else 20))
 		var extent := maxf(80, minf(size.x - 48, size.y - (462 if compact else 592)))
 		board_rect = Rect2(Vector2((size.x - extent) * 0.5, 222 if compact else 326), Vector2.ONE * extent)
 		_place($CharacterCaptures, Rect2(24, 178 if compact else 266, size.x - 48, 30 if compact else 44))
@@ -256,8 +253,6 @@ func _layout() -> void:
 		_place(portrait, Rect2(header.size.x * 0.25 + 12, 5, header.size.x * 0.34 - 24, 108))
 		_place($TopStrip/Memories, Rect2(header.size.x * 0.59 + 12, 8, header.size.x * 0.41 - 24, 102))
 		_place(dialogue_bubble, Rect2((size.x - minf(770, size.x - 320)) * 0.5, 150, minf(770, size.x - 320), 76))
-		_place(envelope, Rect2(dialogue_bubble.position.x - 142, 166, 112, 86))
-		_place($EnvelopeCaption, Rect2(envelope.position.x, 252, 112, 22))
 		var extent := maxf(80, minf(size.y - 284, size.x - 316))
 		var side_inventory := size.x - (size.x + extent) * 0.5 - 62 >= 300
 		if not side_inventory:
@@ -275,26 +270,44 @@ func _layout() -> void:
 			_place(inventory, Rect2(maxf(220, (size.x - 400) * 0.5), size.y - 130, minf(400, size.x - 252), 108))
 		_place(back, Rect2(60, size.y - 80, 134, 50))
 	$TopStrip/Atmosphere.visible = not narrow and header.size.x >= 1200
+	letter.scale = Vector2.ONE * (0.38 if narrow else 0.72)
+	letter.position = Vector2(14, dialogue_bubble.position.y - 6) if narrow else Vector2(dialogue_bubble.position.x - 142, 156)
+	letter.visible = not picking_colour
+	if letter.enabled != letter.visible:
+		letter.set_enabled(letter.visible)
+	inventory.visible = not picking_colour
+	details.visible = details.visible and not picking_colour
+	dialogue_bubble.z_index = 3 if picking_colour else 0
+	if picking_colour:
+		var wrist_y := header.get_rect().end.y + 2.0
+		var hand_width := minf(680.0, size.x - 32.0)
+		var hand_bottom := back.position.y - 8.0 if (size.x - hand_width) * 0.5 < back.get_rect().end.x else size.y - 48.0
+		if narrow:
+			hand_bottom = minf(hand_bottom, wrist_y + hand_width * 0.9)
+		_place(fist_choice, Rect2((size.x - hand_width) * 0.5, wrist_y, hand_width, maxf(1.0, hand_bottom - wrist_y)))
+		var bubble_width := minf(770.0, size.x - 32.0)
+		_place(dialogue_bubble, Rect2((size.x - bubble_width) * 0.5, wrist_y + (22.0 if narrow else 38.0), bubble_width, 52.0 if narrow else 76.0))
 	_place(status, Rect2(24, 18, dialogue_bubble.size.x - 48, dialogue_bubble.size.y - 26))
 	_place($Back/Arrow, Rect2(0, 5, 76, 36))
 	_place(board_frame, board_rect.grow(14))
-	_place(fist_choice, board_rect)
 	_place($Promotion, Rect2(board_rect.position.x, board_rect.get_center().y - 24, board_rect.size.x, 48))
 	_place($RPS, Rect2(Vector2.ZERO, size))
-	_place($HistoryShade, Rect2(Vector2.ZERO, size))
+	_place($MovesShade, Rect2(Vector2.ZERO, size))
 	_place($PGN, Rect2(Vector2.ZERO, size))
 	_layout_pgn()
-	_place($HistoryButton, Rect2(size.x - 204, size.y - 62, 180, 44))
-	$HistoryButton.visible = narrow
-	$MatchHistory.visible = not narrow or history_open
-	$MatchHistory/Contents/Close.visible = narrow
-	$HistoryShade.visible = narrow and history_open
-	$MatchHistory.z_index = 21 if narrow else 0
-	if narrow:
-		var history_size := Vector2(maxf(100, size.x - 32), minf(400, maxf(120, size.y - 32)))
-		_place($MatchHistory, Rect2((size - history_size) * 0.5, history_size))
+	_place($MovesButton, Rect2(size.x - 164, size.y - 62, 140, 44))
+	$MovesButton.visible = moves_popup and not picking_colour
+	$MovePanel.visible = not picking_colour and (not moves_popup or moves_open)
+	$MovePanel/Contents/Close.visible = moves_popup
+	$MovesShade.visible = not picking_colour and moves_popup and moves_open
+	$MovePanel.z_index = 21 if moves_popup else 0
+	if moves_popup:
+		var popup_width := minf(460.0, size.x - 32.0)
+		var popup_height := minf(240.0, size.y * 0.45)
+		_place($MovePanel, Rect2((size.x - popup_width) * 0.5, size.y - popup_height - 16.0, popup_width, popup_height))
 	else:
-		_place($MatchHistory, Rect2(board_rect.end.x + 30, 388, maxf(120, size.x - board_rect.end.x - 62), maxf(90, inventory.position.y - 402)))
+		var panel_x := board_rect.end.x + 30.0
+		_place($MovePanel, Rect2(panel_x, 388, size.x - panel_x - 24.0, maxf(130.0, inventory.position.y - 402)))
 	_layout_rps()
 	queue_redraw()
 
@@ -326,7 +339,7 @@ func restart(color: int) -> void:
 	record = Record.new(game, color, bot.behavior.display_name) if color != 0 else null
 	review_record = null
 	replay_cache.clear()
-	history_open = false
+	moves_open = false
 	$PGN.hide()
 	thinking = false
 	history.clear()
@@ -370,11 +383,12 @@ func suspend_match() -> void:
 	bot.cancel()
 	thinking = false
 	suspended = true
+	moves_open = false
 	colour_timer.paused = true
 	process_mode = Node.PROCESS_MODE_DISABLED
 	hide()
 
-func resume_match() -> void:
+func resume_match(start_bot := true) -> void:
 	if not suspended:
 		return
 	suspended = false
@@ -383,7 +397,7 @@ func resume_match() -> void:
 	show()
 	_fit_window()
 	_refresh()
-	if review_record == null and not choosing_colour and ended.is_empty() and not rps_active and promotion_moves.is_empty() and game.turn != human_color:
+	if start_bot and review_record == null and not choosing_colour and ended.is_empty() and not rps_active and promotion_moves.is_empty() and game.turn != human_color:
 		_bot_turn()
 
 func _exit_tree() -> void:
@@ -400,7 +414,7 @@ func _refresh() -> void:
 			record.start_fen = Record.fen(game)
 		record.finish(ended)
 		archive.add(record)
-	status.text = ended if not ended.is_empty() else (thinking_dialogue if thinking else ("Careful — your king is in check!" if game.in_check(game.turn) else idle_dialogue))
+	status.text = ended if not ended.is_empty() else (thinking_dialogue if thinking else ("Check!" if game.in_check(game.turn) else idle_dialogue))
 	details.text = "with " + bot.behavior.display_name + "\nYou: " + ("White" if human_color == 1 else "Black") + "\n" + bot.behavior.target_rating_label
 	portrait.texture = visual_theme.portrait_thinking if thinking else visual_theme.portrait_idle
 	var viewing_color := _view_colour()
@@ -409,12 +423,13 @@ func _refresh() -> void:
 	_refresh_captures()
 	var source = _review_source()
 	var total: int = source.moves.size() if source != null else 0
-	var replay_blocked := (review_record == null and not promotion_moves.is_empty()) or rps_active
+	var replay_blocked := _replay_blocked()
 	previous.disabled = total == 0 or review_index == 0 or replay_blocked
 	next.disabled = review_index < 0 or review_index >= total or replay_blocked
 	live.disabled = review_index < 0 and review_record == null
-	live.text = "live" if review_record == null else "my game"
-	$Inventory/Contents/Replay/Position.text = "%d / %d" % [review_index if review_index >= 0 else total, total]
+	live.text = "live" if review_record == null else "table"
+	_refresh_move_list(source, total)
+	$MovePanel/Contents/Replay/Position.text = "%d / %d" % [review_index if review_index >= 0 else total, total]
 	takeback.visible = review_record == null and ended.is_empty()
 	resign.visible = takeback.visible
 	new_game.visible = review_record == null and not ended.is_empty()
@@ -425,13 +440,13 @@ func _refresh() -> void:
 	promotion_row.visible = not promotion_moves.is_empty() and review_index < 0 and not rps_active and review_record == null
 	$Promotion.visible = promotion_row.visible
 	if not promotion_moves.is_empty():
-		status.text = "Which piece are you going for?"
+		status.text = "Promote to?"
 	if review_index >= 0:
 		status.text = "Move %d of %d · %s" % [review_index, total, str(source.moves[review_index - 1].san) if review_index > 0 else "start position"]
 		if review_record != null:
 			details.text = review_record.summary()
 	if choosing_colour and review_record == null:
-		status.text = "choose a fist." if human_color == 0 else ("White queen — you play White." if human_color == 1 else "Black queen — you play Black.")
+		status.text = "choose a paw." if human_color == 0 else ("You're White." if human_color == 1 else "You're Black.")
 		details.text = "with " + bot.behavior.display_name + "\n" + ("Your colour is hidden" if human_color == 0 else ("You: White" if human_color == 1 else "You: Black"))
 	queue_redraw()
 
@@ -458,20 +473,37 @@ func _bot_turn() -> void:
 func _review_source():
 	return review_record if review_record != null else record
 
+func _replay_blocked() -> bool:
+	return suspended or rps_active or letter.reading or $PGN.visible or (review_record == null and (choosing_colour or not promotion_moves.is_empty()))
+
 func _review_previous() -> void:
 	var source = _review_source()
-	if suspended or source == null or source.moves.is_empty() or (review_record == null and not promotion_moves.is_empty()) or rps_active:
+	if _replay_blocked() or source == null or source.moves.is_empty() or review_index == 0:
 		return
-	_set_review(source.moves.size() - 1 if review_index < 0 else maxi(0, review_index - 1))
+	_go_to_move(source.moves.size() - 1 if review_index < 0 else review_index - 1)
 
 func _review_next() -> void:
+	if review_index >= 0:
+		_go_to_move(review_index + 1)
+
+func _select_recorded_move(item: int) -> void:
+	_go_to_move(item + 1)
+
+func _go_to_move(index: int) -> void:
 	var source = _review_source()
-	if suspended or source == null or review_index < 0 or rps_active:
+	if _replay_blocked() or source == null or index < 0 or index > source.moves.size():
+		_refresh_move_selection(source.moves.size() if source != null else 0)
 		return
-	if review_record == null and review_index + 1 >= source.moves.size():
+	if review_record == null and index == source.moves.size():
 		_return_live()
 	else:
-		_set_review(mini(source.moves.size(), review_index + 1))
+		_set_review(index)
+
+func _leave_replay() -> void:
+	if review_record != null:
+		leave_match()
+	else:
+		_return_live()
 
 func _set_review(index: int) -> void:
 	review_index = index
@@ -488,6 +520,7 @@ func _return_live() -> void:
 	colour_timer.paused = false
 	fist_choice.visible = choosing_colour
 	_refresh()
+	_layout()
 	if not rps_active and promotion_moves.is_empty() and ended.is_empty() and not choosing_colour and game.turn != human_color:
 		_bot_turn()
 
@@ -578,7 +611,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 func select_square(index: int) -> void:
-	if suspended or review_record != null or choosing_colour or thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty() or review_index >= 0 or rps_active or history_open or $PGN.visible:
+	if suspended or review_record != null or choosing_colour or thinking or not ended.is_empty() or game.turn != human_color or not promotion_moves.is_empty() or review_index >= 0 or rps_active or moves_open or letter.reading or $PGN.visible:
 		return
 	var candidates := legal.filter(func(move): return move.from == selected and move.to == index)
 	if not candidates.is_empty():
@@ -654,23 +687,44 @@ func start_new_game() -> void:
 		return
 	restart(0)
 
-func _refresh_match_list() -> void:
-	var list: ItemList = $MatchHistory/Contents/List
-	list.clear()
-	for saved in archive.records:
-		list.add_item(saved.summary())
-		list.set_item_tooltip(list.item_count - 1, saved.summary() + "\nSelect to replay this match.")
-	$MatchHistory/Contents/Empty.visible = archive.records.is_empty()
-	$HistoryButton.text = "match history (%d)" % archive.records.size()
+func _refresh_move_list(source, total: int) -> void:
+	var lines: Array[String] = []
+	if total > 0:
+		var fen_fields: PackedStringArray = source.start_fen.split(" ")
+		var number := int(fen_fields[5])
+		var white := fen_fields[1] == "w"
+		for move in source.moves:
+			lines.append("%d%s %s" % [number, "." if white else "...", move.san])
+			if not white:
+				number += 1
+			white = not white
+	var list: ItemList = $MovePanel/Contents/List
+	if lines != move_labels:
+		move_labels = lines
+		list.clear()
+		for line in move_labels:
+			list.add_item(line)
+	$MovePanel/Contents/Empty.visible = total == 0
+	_refresh_move_selection(total)
 
-func _show_history() -> void:
-	if suspended or rps_active or $PGN.visible:
+func _refresh_move_selection(total: int) -> void:
+	var list: ItemList = $MovePanel/Contents/List
+	var current := (total if review_index < 0 else review_index) - 1
+	if current < 0 or current >= list.item_count:
+		list.deselect_all()
+	elif not list.is_selected(current):
+		list.select(current)
+		list.ensure_current_is_visible()
+
+func _show_moves() -> void:
+	if _replay_blocked():
 		return
-	history_open = true
+	moves_open = true
 	_layout()
+	$MovePanel/Contents/List.ensure_current_is_visible()
 
-func _close_history() -> void:
-	history_open = false
+func _close_moves() -> void:
+	moves_open = false
 	_layout()
 
 func _open_archived(index: int) -> void:
@@ -684,7 +738,7 @@ func _open_archived(index: int) -> void:
 	colour_timer.paused = true
 	fist_choice.hide()
 	review_record = archive.records[index]
-	_close_history()
+	_close_moves()
 	_set_review(review_record.moves.size())
 
 func _show_pgn() -> bool:
@@ -714,14 +768,16 @@ func _open_external_review() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		if $PGN.visible:
+		if letter.reading:
+			letter.reader.close_note()
+		elif $PGN.visible:
 			$PGN.hide()
-		elif history_open:
-			_close_history()
+		elif moves_open:
+			_close_moves()
 		elif rps_active:
 			_close_rps()
 		elif review_index >= 0:
-			_return_live()
+			_leave_replay()
 		else:
 			leave_match()
 

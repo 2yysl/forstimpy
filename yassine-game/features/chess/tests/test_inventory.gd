@@ -50,7 +50,7 @@ func _run() -> void:
 	a.bot.behavior = a.bot.behavior.duplicate()
 	a.bot.behavior.think_delay_seconds = 0.4
 	check(a.previous.disabled and a.takeback.disabled and not a.resign.disabled, "Fresh game: review/takeback unavailable, resign available")
-	check(a.inventory.get_node("Contents/Replay").get_child_count() == 4 and not a.has_node("Inventory/Contents/Buttons/Undo"), "Previous/next/live navigation replaces the undo button")
+	check(a.get_node("MovePanel/Contents/Replay").get_child_count() == 4 and not a.has_node("Inventory/Contents/Buttons/Undo"), "Previous/next/live navigation replaces the undo button")
 	a.select_square(Rules.square("e2"))
 	a.select_square(Rules.square("e4"))
 	await wait_bot(a)

@@ -41,7 +41,7 @@ func run() -> void:
 	var fist_state: int = a.fist_choice.rng.state
 	var left_colour: int = a.fist_choice.left_colour
 	a.back.pressed.emit()
-	check(a.suspended and not a.visible and stage.ui.visible and stage.letter.enabled, "Back suspends chess and restores the table and letter")
+	check(a.suspended and not a.visible and stage.ui.visible and not stage.ui.has_node("Letter"), "Back suspends chess and restores the table with the letter hidden")
 	check(a.process_mode == Node.PROCESS_MODE_DISABLED and stage.match_layer.get_child_count() == 1, "Exactly one retained match has its processing disabled")
 	a.fist_choice.choose(0)
 	check(a.human_color == 0 and a.fist_choice.selected_hand == -1, "Hidden fists cannot be selected")
